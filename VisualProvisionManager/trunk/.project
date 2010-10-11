@@ -3,6 +3,7 @@
 	<name>VisualProvisionManager</name>
 	<comment></comment>
 	<projects>
+		<project>ProvisionModel</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>
