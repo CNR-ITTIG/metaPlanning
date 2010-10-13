@@ -89,5 +89,21 @@ public class FrameUtil {
 		}
 			
 		}
+	
+	public static boolean stringWithCarachter(String str)
+	{
+		boolean ret=false;
+		if(str.length()==0){
+			return false;
+		}
+		Character c=null;
+		for(int i=0; i<str.length();i++){
+			c=str.charAt(i);
+			if(Character.getNumericValue(c)!=-1){
+				ret=true;;
+			}
+		}		
+		return ret;
+	}
 
 }

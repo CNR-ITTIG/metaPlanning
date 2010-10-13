@@ -1,5 +1,6 @@
 package it.cnr.ittig.VisualProvisionManager;
 
+import it.cnr.ittig.ProvisionModel.ProvisionModelFactory;
 import it.cnr.ittig.VisualProvisionManager.tesi.RDFFileFilter;
 
 import java.awt.BorderLayout;
@@ -20,12 +21,14 @@ import java.io.InputStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JDesktopPane;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -52,20 +55,37 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
 public class applicationFrame {
-	private static JFrame frame;
+	private  static JFrame frame;
 	private static JPanel panel;
-	private static OntModel model=ModelFactory.createOntologyModel();
+	private static ProvisionModelFactory provisionModelFactory=new ProvisionModelFactory();
+	private static OntModel model=provisionModelFactory.getProvisionModel();
 	private static String savedPath;//UTILE PER VEDERE SE UN DATO FILE E' GIA' STATO SALVATO ED IN CHE PATH 
 	private static Document document=null;
 	private static JTextArea text;
 	private static JPanel subPanel,subPanel1;
 	private static JDesktopPane desktop = new JDesktopPane();
 	private static boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
-	private static boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando 
+	private static boolean init=false; 
+	private static String dest=null;
+	private static String counter=null;
+	private static String actionS=null;
+	private static String object=null;
+	private static String textLaw=null;
+	private static String effect=null;
+	private static String penalty=null;
+	private static String definiendum=null;
+	private static String definiens=null;
+	private static String activity=null;
+	private static String[] vec=new String[] {"Pippo","Cluto"};//indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando 
 	//si apre un nuovo documento con il documento iniziale mai modificato
+	
+	public applicationFrame(){
+		
+	}
 	public static void main(String [] args){
 		Runnable runner= new Runnable(){
 			public void run(){
+				//applicationFrame app=new applicationFrame();
 				frame= createInterface(); 
 			};
 		};
@@ -82,6 +102,12 @@ public class applicationFrame {
 		text=new JTextArea(30,30); //TODO CAMBIA, FALLA DI DIMENSIONI "AUTOIMPOSTANTI"
 		text.setLineWrap(true);
 		text.setWrapStyleWord(true);
+		// NON FUNZIONA PROBLEMA NEL SETTARE L'URIByteArrayOutputStream 
+		/*ByteArrayOutputStream bout=null;
+		bout=new ByteArrayOutputStream();
+        //riscrittura del file su standard output (togliere, per ora controllo almeno gli errori)
+     	model.write(bout);
+     	text.setText(new String(bout.toByteArray()));*/
 		JScrollPane scroll=new JScrollPane(text);
 		
 		//imposto le dimensioni della finesta basate sulle dimensioni dello schermo/2
@@ -273,31 +299,81 @@ public class applicationFrame {
 			}
 		};
 		
-		
-		ActionListener rightListener=new ActionListener(){
+		// FUNZIONA ORA PROVO A RISCRIVERLO DIVERSO
+		/*ActionListener rightListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,action,object;
+				boolean cond=false;
 				JTextField field=new JTextField();
 				JTextField field1=new JTextField();
 				JTextField field2=new JTextField();
 				JTextField field3=new JTextField();
+				JPanel screen= new JPanel();
+				JPanel down=new JPanel();
+				screen.setLayout(new BorderLayout());
+				//screen.setLayout(new GridLayout(2,1,1,1));
 				JPanel panel=new JPanel();
-				panel.setLayout(new GridLayout(8,1));
+				panel.setLayout(new GridLayout(8,2));
+				down.setLayout(new GridLayout(2,1));
 				JLabel label=new JLabel("Inserire destinatario");
 				JLabel label1=new JLabel("Inserire controparte");
 				JLabel label2=new JLabel("Inserire azione");
 				JLabel label3=new JLabel("Inserire oggetto");
+				JLabel label4=new JLabel("Inserire testo");
+				JLabel empty=new JLabel("");
+				JLabel empty1=new JLabel("");
+				JLabel empty2=new JLabel("");
+				JLabel empty3=new JLabel("");
+				JTextArea area=new JTextArea(5,10);
+				JComboBox box=new JComboBox(vec);
+				JComboBox box1=new JComboBox(vec);
+				JComboBox box2=new JComboBox(vec);
+				JComboBox box3=new JComboBox(vec);
+				area.setLineWrap(true);
+				area.setWrapStyleWord(true);
+				JScrollPane scroller=new JScrollPane(area);
 				panel.add(label);
+				panel.add(empty);
 				panel.add(field);
+				panel.add(box);
 				panel.add(label1);
+				panel.add(empty1);
 				panel.add(field1);
+				panel.add(box1);
 				panel.add(label2);
+				panel.add(empty2);
 				panel.add(field2);
+				panel.add(box2);
 				panel.add(label3);
+				panel.add(empty3);
 				panel.add(field3);
-				int confirm=JOptionPane.showConfirmDialog(frame, panel, "Inserimento nuovo right",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE);
+				panel.add(box3);
+				down.add(label4);
+				down.add(scroller);
+				//down.setPreferredSize(panel.getSize());
+				Dimension size=panel.getSize();
+				size.setSize(size.getHeight()/2,size.getHeight()/2);
+				//down.setSize(size);
+				screen.add(panel,BorderLayout.NORTH);
+				//screen.add(panel);
+				//screen.add(down);
+				//screen.setSize(1, 1);
+				//screen.add(new JSeparator(),BorderLayout.CENTER);
+				screen.add(label4,BorderLayout.CENTER);
+				screen.add(down,BorderLayout.SOUTH);
+				int confirm=JOptionPane.showConfirmDialog(frame, screen, "Inserimento nuovo right",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE);
 				if(confirm==JOptionPane.OK_OPTION){
+					cond=FrameUtil.stringWithCarachter(field.getText())&FrameUtil.stringWithCarachter(field1.getText())&FrameUtil.stringWithCarachter(field2.getText())&FrameUtil.stringWithCarachter(field3.getText());
+					while(!cond)
+					{
+						confirm=JOptionPane.showConfirmDialog(frame, screen, "Impossibile lasciare alcuni campi vuoti",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE);
+						if(confirm!=JOptionPane.OK_OPTION)
+						{
+							return;
+						}
+						cond=FrameUtil.stringWithCarachter(field.getText())&FrameUtil.stringWithCarachter(field1.getText())&FrameUtil.stringWithCarachter(field2.getText())&FrameUtil.stringWithCarachter(field3.getText());
+					}
 					dest=field.getText();
 					counter=field1.getText();
 					action=field2.getText();
@@ -306,12 +382,25 @@ public class applicationFrame {
 					text.setText("<dest>"+dest+ "<\\dest> \n"+ " "+counter+ " "+action+" "+ object);
 				}
 			}
-		};
+		};*/
 		
+		ActionListener rightListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,actionS,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"right",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore azione pari a "+actionS);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
+		};
 		rightItem.addActionListener(rightListener);
 		//LIstener per creare un nuovo Duty
 		
-		ActionListener dutyListener=new ActionListener(){
+	/*	ActionListener dutyListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,action,object;
@@ -342,9 +431,23 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+action+" "+ object);
 				}
 			}
+		};*/
+		ActionListener dutyListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,actionS,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"duty",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore azione pari a "+actionS);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
+		dutyItem.addActionListener(dutyListener);
 		//Listener per inserire un nuovo prohibition
-		ActionListener prohibitionListener=new ActionListener(){
+		/*ActionListener prohibitionListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,action,object;
@@ -375,10 +478,23 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+action+" "+ object);
 				}
 			}
+		};*/
+		ActionListener prohibitionListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,actionS,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"prohibition",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore azione pari a "+actionS);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		prohibitionItem.addActionListener(prohibitionListener);
 		//Listener per inserire un nuovo permission
-		ActionListener permissionListener=new ActionListener(){
+		/*ActionListener permissionListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,action,object;
@@ -409,12 +525,26 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+action+" "+ object);
 				}
 			}
+		};*/
+		
+		ActionListener permissionListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,actionS,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"permission",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore azione pari a "+actionS);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		permissionItem.addActionListener(permissionListener);
 		
 		//Listener per inserire nuovo redress
-		ActionListener redressListener=new ActionListener(){
+		/*ActionListener redressListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,effect,object;
@@ -445,12 +575,26 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+effect+" "+ object);
 				}
 			}
+		};*/
+		
+		ActionListener redressListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,effect,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"redress",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore effect pari a "+effect);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		redressItem.addActionListener(redressListener);
 		
 		//Listener per inserire nuova violation
-		ActionListener violationListener=new ActionListener(){
+		/*ActionListener violationListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,penalty,object;
@@ -481,12 +625,26 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+penalty+" "+ object);
 				}
 			}
+		};*/
+		
+		ActionListener violationListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,penalty,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"violation",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore pena pari a "+penalty);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		violationItem.addActionListener(violationListener);
 		
 		//Listener per inserire nuovo term
-		ActionListener termListener=new ActionListener(){
+		/*ActionListener termListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String definiendum, definiens;
@@ -507,14 +665,25 @@ public class applicationFrame {
 					System.out.println(definiendum+ " "+ " "+definiens);
 				}
 			}
+		};*/
+		ActionListener termListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{definiendum,definiens,textLaw};
+				InsertForm ins=new InsertForm(vec,"term",result);
+				System.out.println("Valore definiendum pari a "+definiendum);
+				System.out.println("Valore definiens pari a "+definiens);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		termItem.addActionListener(termListener);
 		
 		//Listener per inserire nuovo procedure
-		ActionListener procedureListener=new ActionListener(){
+		/*ActionListener procedureListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
-				String dest,counter,action,object;
+				String counter,action,object;
 				JTextField field=new JTextField();
 				JTextField field1=new JTextField();
 				JTextField field2=new JTextField();
@@ -543,13 +712,26 @@ public class applicationFrame {
 					
 				}
 			}
+		};*/
+		ActionListener procedureListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,actionS,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"procedure",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore azione pari a "+actionS);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		procedureItem.addActionListener(procedureListener);
 		
 		//Listener per inserire nuovo establishment
 		
-		ActionListener establishmentListener=new ActionListener(){
+		/*ActionListener establishmentListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest;
@@ -565,12 +747,23 @@ public class applicationFrame {
 					System.out.println(dest);
 				}
 			}
+		};*/
+		
+		ActionListener establishmentListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,textLaw};
+				InsertForm ins=new InsertForm(vec,"establishment",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		establishmentItem.addActionListener(establishmentListener);
 		
 		//Listener per inserire nuovo organization
-		ActionListener organizationListener=new ActionListener(){
+		/*ActionListener organizationListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest;
@@ -586,6 +779,17 @@ public class applicationFrame {
 					System.out.println(dest);
 				}
 			}
+		};*/
+		
+		ActionListener organizationListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,textLaw};
+				InsertForm ins=new InsertForm(vec,"organization",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		organizationItem.addActionListener(organizationListener);
@@ -593,7 +797,7 @@ public class applicationFrame {
 		
 		//Listener per inserire nuovo power
 		
-		ActionListener powerListener=new ActionListener(){
+		/*ActionListener powerListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,activity,object;
@@ -624,13 +828,27 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+activity+" "+ object);
 				}
 			}
+		};*/
+		
+		ActionListener powerListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,activity,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"power",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore attività pari a "+activity);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		powerItem.addActionListener(powerListener);
 		
 		//Listener per aggiungere nuovo liability
 		
-		ActionListener liabilityListener=new ActionListener(){
+		/*ActionListener liabilityListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,counter,activity,object;
@@ -661,13 +879,27 @@ public class applicationFrame {
 					System.out.println(dest+ " "+ " "+counter+ " "+activity+" "+ object);
 				}
 			}
+		};*/
+		
+		ActionListener liabilityListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,counter,activity,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"liability",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore controparte pari a "+counter);
+				System.out.println("Valore attività pari a "+activity);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
+			}
 		};
 		
 		liabilityItem.addActionListener(liabilityListener);
 		
 		//Listener per inserire nuovo status
 		
-		ActionListener statusListener=new ActionListener(){
+		/*ActionListener statusListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				String dest,object;
@@ -687,6 +919,18 @@ public class applicationFrame {
 					object=field1.getText();
 					System.out.println(dest+ " "+ object);
 				}
+			}
+		};*/
+		
+		ActionListener statusListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
+				//String dest=null;
+				String [] result=new String[]{dest,object,textLaw};
+				InsertForm ins=new InsertForm(vec,"status",result);
+				System.out.println("Valore destinatario pari a "+dest);
+				System.out.println("Valore oggetto pari a "+object);
+				System.out.println("Valore legge pari a "+textLaw);
 			}
 		};
 		
@@ -783,7 +1027,7 @@ public class applicationFrame {
 			public void changedUpdate(DocumentEvent e){
 				init=true; //indico che il documento ha subito una qualsiasi operazione
 				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
-				System.out.println("CAmbiamento");
+				System.out.println("Cambiamento");
 			}
 			public void insertUpdate(DocumentEvent e){
 				init=true; //indico che il documento ha subito una qualsiasi operazione
@@ -828,5 +1072,34 @@ public class applicationFrame {
 		  }
 		}
 
-
+	protected static void setDest(String result){
+		dest=result;
+	}
+	protected static void setCounter(String result){
+		counter=result;
+	}
+	protected static void setAction(String result){
+		actionS=result;
+	}
+	protected static void setObject(String result){
+		object=result;
+	}
+	protected static void setTextLaw(String result){
+		textLaw=result;
+	}
+	protected static void setEffect(String result){
+		effect=result;
+	}
+	protected static void setPenalty(String result){
+		penalty=result;
+	}
+	protected static void setDefiniendum(String result){
+		definiendum=result;
+	}
+	protected static void setDefiniens(String result){
+		definiens=result;
+	}
+	protected static void setActivity(String result){
+		activity=result;
+	}
 }
