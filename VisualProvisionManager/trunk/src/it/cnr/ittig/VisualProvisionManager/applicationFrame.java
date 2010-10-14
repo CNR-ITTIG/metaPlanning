@@ -152,11 +152,18 @@ public class applicationFrame {
 		insertMenu.setMnemonic(KeyEvent.VK_N);
 		JMenu constitutiveMenu=new JMenu("Constituive rule");
 		JMenu regulativeMenu=new JMenu("Regulative rule");
+		constitutiveMenu.setMnemonic(KeyEvent.VK_C);
+		regulativeMenu.setMnemonic(KeyEvent.VK_R);
 		JMenu definition=new JMenu("Definition");
 		JMenu creation=new JMenu("Creation");
 		JMenu attribution=new JMenu("Attribution");
+		definition.setMnemonic(KeyEvent.VK_D);
+		creation.setMnemonic(KeyEvent.VK_C);
+		attribution.setMnemonic(KeyEvent.VK_A);
 		JMenu action=new JMenu("Action");
 		JMenu remedy=new JMenu("Remedy");
+		action.setMnemonic(KeyEvent.VK_A);
+		remedy.setMnemonic(KeyEvent.VK_R);
 		JMenuItem termItem=new JMenuItem("Term",KeyEvent.VK_T);
 		JMenuItem procedureItem=new JMenuItem("Procedure",KeyEvent.VK_P);
 		JMenuItem establishmentItem=new JMenuItem("Establishment",KeyEvent.VK_E);
@@ -389,8 +396,8 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"right",result);
-				System.out.println("Valore destinatario pari a "+dest);
+				InsertForm ins=new InsertForm(vec,"right");
+				System.out.println("Valore destinatario pari a "+dest);//TOGLIERE QUESTE STAMPE
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore azione pari a "+actionS);
 				System.out.println("Valore oggetto pari a "+object);
@@ -437,7 +444,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"duty",result);
+				InsertForm ins=new InsertForm(vec,"duty");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore azione pari a "+actionS);
@@ -484,7 +491,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"prohibition",result);
+				InsertForm ins=new InsertForm(vec,"prohibition");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore azione pari a "+actionS);
@@ -532,7 +539,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"permission",result);
+				InsertForm ins=new InsertForm(vec,"permission");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore azione pari a "+actionS);
@@ -582,7 +589,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,effect,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"redress",result);
+				InsertForm ins=new InsertForm(vec,"redress");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore effect pari a "+effect);
@@ -632,7 +639,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,penalty,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"violation",result);
+				InsertForm ins=new InsertForm(vec,"violation");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore pena pari a "+penalty);
@@ -671,7 +678,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{definiendum,definiens,textLaw};
-				InsertForm ins=new InsertForm(vec,"term",result);
+				InsertForm ins=new InsertForm(vec,"term");
 				System.out.println("Valore definiendum pari a "+definiendum);
 				System.out.println("Valore definiens pari a "+definiens);
 				System.out.println("Valore legge pari a "+textLaw);
@@ -718,7 +725,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"procedure",result);
+				InsertForm ins=new InsertForm(vec,"procedure");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore azione pari a "+actionS);
@@ -754,7 +761,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,textLaw};
-				InsertForm ins=new InsertForm(vec,"establishment",result);
+				InsertForm ins=new InsertForm(vec,"establishment");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore legge pari a "+textLaw);
 			}
@@ -786,7 +793,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,textLaw};
-				InsertForm ins=new InsertForm(vec,"organization",result);
+				InsertForm ins=new InsertForm(vec,"organization");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore legge pari a "+textLaw);
 			}
@@ -835,7 +842,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,activity,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"power",result);
+				InsertForm ins=new InsertForm(vec,"power");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore attività pari a "+activity);
@@ -886,7 +893,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,counter,activity,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"liability",result);
+				InsertForm ins=new InsertForm(vec,"liability");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore controparte pari a "+counter);
 				System.out.println("Valore attività pari a "+activity);
@@ -927,7 +934,7 @@ public class applicationFrame {
 			{
 				//String dest=null;
 				String [] result=new String[]{dest,object,textLaw};
-				InsertForm ins=new InsertForm(vec,"status",result);
+				InsertForm ins=new InsertForm(vec,"status");
 				System.out.println("Valore destinatario pari a "+dest);
 				System.out.println("Valore oggetto pari a "+object);
 				System.out.println("Valore legge pari a "+textLaw);
@@ -999,16 +1006,18 @@ public class applicationFrame {
 		//frame.add(separator);
 		frame.add(toolbar,BorderLayout.NORTH);
 		
-		//creo l'area di testo principale
+		//PER CREARE PIU'ELEMENTI LEGATI "BENE" ASSIEME GUARDA SPRINGLAYOUT O JTABBEDPANE PER FARLI IN TAB DIVERSI
+		//creo l'area di testo principale TODO riguarda ogni cosa
 		Container contentPane=frame.getContentPane();//creo il pannello posto nell'area centrale
 		panel=new JPanel();
+		JScrollPane mainPaneLeft=new JScrollPane(panel);//creo lo scroller contenente la'rea di testo
 		//panel.setPreferredSize(contentPane.getSize());
 		/*text=new JTextArea(30,30); //TODO CAMBIA, FALLA DI DIMENSIONI "AUTOIMPOSTANTI"
 		text.setLineWrap(true);
 		text.setWrapStyleWord(true);
 		JScrollPane scroll=new JScrollPane(text);*/
 		System.out.println ("dimensione "+contentPane.getSize());
-		contentPane.add(panel,BorderLayout.CENTER);
+		contentPane.add(mainPaneLeft,BorderLayout.CENTER);
 		panel.setLayout(new FlowLayout(FlowLayout.LEFT));
 		subPanel=new JPanel();
 		//Border border=BorderFactory.createLineBorder(Color.black, 5);
@@ -1021,7 +1030,7 @@ public class applicationFrame {
 		
 		
 		
-		//creo il gestore del document //TODO farli fare qualcosa, per ora non fa nulla
+		//creo il gestore del document ,utile per vedere quando viene modificata l'area di testo principale
 		
 		class DocumentGesture implements DocumentListener{
 			public void changedUpdate(DocumentEvent e){
@@ -1071,7 +1080,8 @@ public class applicationFrame {
 		    return "File RDF";
 		  }
 		}
-
+	//TODO CREARE METODI PER CREARE NUOVE DISPOSIZIONI
+	//METODI PER SETTARE GLI ARGOMENTI
 	protected static void setDest(String result){
 		dest=result;
 	}
