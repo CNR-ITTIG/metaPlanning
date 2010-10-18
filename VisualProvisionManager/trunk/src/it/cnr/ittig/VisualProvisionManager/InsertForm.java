@@ -1,8 +1,10 @@
 package it.cnr.ittig.VisualProvisionManager;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -29,7 +31,7 @@ public class InsertForm extends JDialog{
 	JTextField field1=new JTextField();
 	JTextField field2=new JTextField();
 	JTextField field3=new JTextField();//area di testo per l'immissione del testo di legge
-	JTextArea area=new JTextArea(8,15);
+	JTextArea area=new JTextArea(8,25);
 	JLabel label4=new JLabel("Inserire testo");
 	JPanel screen= new JPanel();//pannello che fa da sfondo ad ogni form di immissione. Andrà aggiunto al contentPane della JDialog che si creerà
 	JPanel down=new JPanel();//pannello che andrà a contenere l'area del testo di legge e la relativa label
@@ -47,9 +49,10 @@ public class InsertForm extends JDialog{
 	JComboBox box1=new JComboBox(vec);
 	JComboBox box2=new JComboBox(vec);
 	JComboBox box3=new JComboBox(vec);
-	public InsertForm(String r[],final String type) //r serve se implemento database di destinatari, type specifica il tipo di disposizione
+	public InsertForm(final applicationFrame applicationFrame,String r[],final String type) //r serve se implemento database di destinatari, type specifica il tipo di disposizione
 	{
 		//IMPOSTO LA FINESTRA A MODALE E CREO GLI ELEMENTI COMUNI A TUTTI I FORM
+		//setLocation(500,50);//da migliorare l'apparizione su schermo
 		setModal(true);
 		java.awt.Container cont=getContentPane();
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -77,7 +80,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());
@@ -95,28 +98,30 @@ public class InsertForm extends JDialog{
 			JScrollPane scroller=new JScrollPane(area); //scroller per contenere l'area di testo per l'immissione del testo di legge
 			panel.add(label);
 			label.setLabelFor(field);
+			//field.setFont(new Font("Courier",25,25));
 			label.setDisplayedMnemonic(KeyEvent.VK_D);
-			panel.add(empty);
+			//panel.add(empty);
 			panel.add(field);
-			panel.add(box);
+			//field.setMinimumSize(new Dimension(1,5));
+			//panel.add(box);
 			panel.add(label1);
 			label1.setLabelFor(field1);
 			label1.setDisplayedMnemonic(KeyEvent.VK_C);
-			panel.add(empty1);
+			//panel.add(empty1);
 			panel.add(field1);
-			panel.add(box1);
+			//panel.add(box1);
 			panel.add(label2);
 			label2.setLabelFor(field2);
 			label2.setDisplayedMnemonic(KeyEvent.VK_A);
-			panel.add(empty2);
+			//panel.add(empty2);
 			panel.add(field2);
-			panel.add(box2);
+			//panel.add(box2);
 			panel.add(label3);
 			label3.setLabelFor(field3);
 			label3.setDisplayedMnemonic(KeyEvent.VK_O);
-			panel.add(empty3);
+			//panel.add(empty3);
 			panel.add(field3);
-			panel.add(box3);
+			//panel.add(box3);
 			//down.add(label4);
 			down.add(scroller);
 			screen.add(panel,BorderLayout.NORTH);
@@ -147,7 +152,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());//CREARE QUI LA NUOVA DISPOSIZIONE SENNO LA CREA ANCHE QUANDO PIGIO ANNULLA
@@ -202,7 +207,7 @@ public class InsertForm extends JDialog{
 		}//GESTISCO I FORM CON 4 ARGOMENTI PARI A DESTINATARIO,CONTROPARTE,PENA,OGGETTO
 		else if(type=="violation"){
 			label2=new JLabel("Inserire pena");
-			panel.setLayout(new GridLayout(8,2));
+			panel.setLayout(new GridLayout(8,1));
 			down.setLayout(new GridLayout(2,1));
 			JPanel pan=new JPanel(new FlowLayout());
 		
@@ -215,7 +220,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());
@@ -234,27 +239,27 @@ public class InsertForm extends JDialog{
 			panel.add(label);
 			label.setLabelFor(field);
 			label.setDisplayedMnemonic(KeyEvent.VK_D);
-			panel.add(empty);
+			//panel.add(empty);
 			panel.add(field);
-			panel.add(box);
+			//panel.add(box);
 			panel.add(label1);
 			label1.setLabelFor(field1);
 			label1.setDisplayedMnemonic(KeyEvent.VK_C);
-			panel.add(empty1);
+			//panel.add(empty1);
 			panel.add(field1);
-			panel.add(box1);
+			//panel.add(box1);
 			panel.add(label2);
 			label2.setLabelFor(field2);
 			label2.setDisplayedMnemonic(KeyEvent.VK_P);
-			panel.add(empty2);
+			//panel.add(empty2);
 			panel.add(field2);
-			panel.add(box2);
+			//panel.add(box2);
 			panel.add(label3);
 			label3.setLabelFor(field3);
 			label3.setDisplayedMnemonic(KeyEvent.VK_O);
-			panel.add(empty3);
+			//panel.add(empty3);
 			panel.add(field3);
-			panel.add(box3);
+			//panel.add(box3);
 			down.add(label4);
 			down.add(scroller);
 			screen.add(panel,BorderLayout.NORTH);
@@ -283,7 +288,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDefiniendum(field.getText());
@@ -334,7 +339,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());
@@ -381,7 +386,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());
@@ -446,7 +451,7 @@ public class InsertForm extends JDialog{
 						while(!cond)
 						{
 							setTitle("Inserimento nuovo "+type+" : Impossibile lasciare campi vuoti");
-							JOptionPane.showMessageDialog(null,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(applicationFrame,"Impossibile lasciare campi vuoti", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
 							return;
 						}
 						applicationFrame.setDest(field.getText());
