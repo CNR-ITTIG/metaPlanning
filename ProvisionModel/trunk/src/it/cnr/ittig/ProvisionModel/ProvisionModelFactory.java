@@ -5,6 +5,7 @@ package it.cnr.ittig.ProvisionModel;
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.ontology.OntProperty;
+import com.hp.hpl.jena.ontology.UnionClass;
 
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
@@ -28,26 +29,14 @@ public class ProvisionModelFactory {
 	 * @param args
 	 */
 	
-	String baseURI = null;
-	String NS = null;
+	// URI declarations
+	String baseURI = new String("http://provisions.org/model/1.0");
+	
+	//NS declaration
+	String NS = new String(baseURI + "#");
 	
 	
 	OntModel ProvisionModel = null;
-	
-	
-	
-	public void setBaseURI() {
-
-		// URI declarations
-		baseURI = new String("http://provisions.org/model/1.0");
-	}
-	
-	
-	public void setNS() {
-
-		NS = new String(baseURI + "#");
-
-	}
 	
 	
 	
@@ -70,17 +59,20 @@ public class ProvisionModelFactory {
 
 		
 		//******BUILD ARGUMENTS (Properties)****************************************	
-		buildDefiniendum();
-		buildDefiniens();
-		buildAddressee();
-		buildCounterpart();
-		buildActivity();
-		buildObject();
-		buildBearer();
-		buildActionProp();
-		buildEffect();
-		buildPenalty();
+		buildHasDefiniendum();
+		buildHasDefiniens();
+		buildHasAddressee();
+		buildHasCounterpart();
+		buildHasActivity();
+		buildHasObject();
+		buildHasBearer();
+		buildHasActionProp();
+		buildHasEffect();
+		buildHasPenalty();
 		
+		
+		//******BUILD IMPLICIT PROVISIONS *************
+		buildImplicitRight();
 		
 		return ProvisionModel;
 
@@ -99,17 +91,25 @@ public class ProvisionModelFactory {
 		
 	}
 	
+	
 	private void buildConstitutiveProvisions()
 	{
-		//Constitutive
+		
+		//Constitutives provisions creation
 		OntClass Definition = ProvisionModel.createClass(NS + "Definition");		
 		OntClass Creation = ProvisionModel.createClass(NS + "Creation");
 		OntClass Attribution = ProvisionModel.createClass(NS + "Attribution");
 		
+		//Constitutive class creation and subclass provisions linking
+	    OntClass Constitutive = ProvisionModel.createClass(NS + "Constitutive");
+		Constitutive.addSubClass(Definition);
+		Constitutive.addSubClass(Creation);
+		Constitutive.addSubClass(Attribution);
+
+
+		//Rule and Constitutive subclass linking 
 		OntClass Rule = ProvisionModel.getOntClass(NS + "Rule");
-		Rule.addSubClass(Definition);
-		Rule.addSubClass(Creation);
-		Rule.addSubClass(Attribution);
+		Rule.addSubClass(Constitutive);
 		
 		
 	}
@@ -117,14 +117,18 @@ public class ProvisionModelFactory {
 	private void buildRegulativeProvisions()
 	{
 		
-		//Regulatives
+		
+		//Regulative provisions creation	
 		OntClass Action = ProvisionModel.createClass(NS + "Action");
 		OntClass Remedy = ProvisionModel.createClass(NS + "Remedy");
+
+		//Regulative class creation and subclass provisions linking
+		OntClass Regulative = ProvisionModel.createClass(NS + "Regulative");
+		Regulative.addSubClass(Action);
+		Regulative.addSubClass(Remedy);
 		
 		OntClass Rule = ProvisionModel.getOntClass(NS + "Rule");
-		
-		Rule.addSubClass(Action);
-		Rule.addSubClass(Remedy);
+		Rule.addSubClass(Regulative);		
 		
 	}
 
@@ -189,147 +193,231 @@ public class ProvisionModelFactory {
 		
 	}
 	
+	
+	//Costruisce un ImplicitRight relativo ad una Duty e i relativi assiomi secondo Hohefeld
+	private void buildImplicitRight()
+	{
+		//Implicit Regulative - "Action" Sub Class
+		OntClass ImplicitRight = ProvisionModel.createClass(NS + "ImplicitRight");
+		OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
+		Duty.addEquivalentClass(ImplicitRight);
+		
+		
+		//Proprietà di ImplicitRight
+		OntProperty ImplicitBearer = ProvisionModel.createOntProperty(NS + "ImplicitBearer");
+		OntProperty ImplicitCounterpart = ProvisionModel.createOntProperty(NS + "ImplicitCounterpart");
+		
+		
+	//*******
+	//***	Selezionare proprietà Bearer con dominio Duty (Restriction)
+		
+	//	
+		
+	//	Aggiungere proprità equivalente ImplicitCounterpart
+	//***************
+		
+		ImplicitBearer.addDomain(ImplicitRight);
+		ImplicitBearer.addRange(OWL.Class);
+		
+		ImplicitCounterpart.addDomain(ImplicitRight);
+		ImplicitCounterpart.addRange(OWL.Class);
+		
+		
+		//Duty ha come Right implicito ImplicitRight (FORSE E' SUFFICIENTE L'ASSIOMA DI EQUIVALENZA?)
+		//OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
+		//OntProperty hasImplicitRight = ProvisionModel.createOntProperty(NS + "hasImplicitRight");
+		//hasImplicitRight.addDomain(Duty);
+		//hasImplicitRight.addRange(ImplicitRight);
+	
+		
+		//Axioms
+		//OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
+		//ImplicitRight.setEquivalentClass(Duty);
+		//ImplicitCounterpart.setEquivalentProperty(Duty.);
+		
+		
+	}
 
 	
-	private void buildDefiniendum()
+	
+	private void buildHasDefiniendum()
 	{
-		OntProperty Definiendum = ProvisionModel.createOntProperty(NS + "Definiendum");
+		OntProperty hasDefiniendum = ProvisionModel.createOntProperty(NS + "hasDefiniendum");
 
 		//******DEFINIENDUM Property
 
-		Definiendum.addDomain(ProvisionModel.getOntClass(NS + "Term")); //Più efficiente di setDomain che deve prima eliminare eventuali Domain esistenti
+		hasDefiniendum.addDomain(ProvisionModel.getOntClass(NS + "Term")); //Più efficiente di setDomain che deve prima eliminare eventuali Domain esistenti
 
 
 		//Definiendum.addRange(RDFS.Literal);
-		Definiendum.addRange(XSD.xstring);
-		Definiendum.addRange(XSD.IDREF);
+		hasDefiniendum.addRange(XSD.xstring);
+		hasDefiniendum.addRange(XSD.IDREF);
 	}
 
-	private void buildDefiniens()
+	private void buildHasDefiniens()
 	{
-		OntProperty Definiens = ProvisionModel.createOntProperty(NS + "Definiens");
+		OntProperty hasDefiniens = ProvisionModel.createOntProperty(NS + "hasDefiniens");
 		
 		//******DEFINIENS Property
-		Definiens.addDomain(ProvisionModel.getOntClass(NS + "Term"));
-		Definiens.addRange(XSD.xstring);
-		Definiens.addRange(XSD.IDREF);
+		hasDefiniens.addDomain(ProvisionModel.getOntClass(NS + "Term"));
+		hasDefiniens.addRange(XSD.xstring);
+		hasDefiniens.addRange(XSD.IDREF);
 	}
 	
-	private void buildAddressee()
+	private void buildHasAddressee()
 	{
-		OntProperty Addressee = ProvisionModel.createOntProperty(NS + "Addressee");
+		OntProperty HasAddressee = ProvisionModel.createOntProperty(NS + "hasAddressee");
 		
 		//******ADDRESSEE Property
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Procedure"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Establishment"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Organization"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Power"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Liability"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Status"));
-		Addressee.addDomain(ProvisionModel.getOntClass(NS + "Organization"));
-		Addressee.addRange(OWL.Class);
+		
+		
+		UnionClass HasAddresseeDomain = ProvisionModel.createUnionClass(null, null);
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Procedure"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Establishment"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Organization"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Power"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Liability"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Status"));
+		HasAddresseeDomain.addOperand(ProvisionModel.getOntClass(NS + "Organization"));
+		
+		HasAddressee.addDomain(HasAddresseeDomain);
+
+/*		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Procedure"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Establishment"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Organization"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Power"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Liability"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Status"));
+		hasAddressee.addDomain(ProvisionModel.getOntClass(NS + "Organization"));
+*/
+		HasAddressee.addRange(OWL.Class);
 		
 	}
 	
-	private void buildCounterpart()
+	private void buildHasCounterpart()
 	{
-		OntProperty Counterpart = ProvisionModel.createOntProperty(NS + "Counterpart");
+		OntProperty HasCounterpart = ProvisionModel.createOntProperty(NS + "hasCounterpart");
 		
-		//********COUNTERPART Property
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Procedure"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Power"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Liability"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Right"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Duty"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Prohibition"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Permission"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Redress"));
-		Counterpart.addDomain(ProvisionModel.getOntClass(NS + "Violation"));
-		Counterpart.addRange(OWL.Class);
+
+		//Construction of a Domain as Union of Provision classes
+		UnionClass HasCounterpartDomain = ProvisionModel.createUnionClass(null, null);
+		
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Procedure"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Power"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Liability"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Right"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Duty"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Prohibition"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Permission"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Redress"));
+		HasCounterpartDomain.addOperand(ProvisionModel.getOntClass(NS + "Violation"));
+		
+		//********hasCounterpart Property
+		HasCounterpart.addDomain(HasCounterpartDomain);
+		HasCounterpart.addRange(OWL.Class);
 
 	}
 	
-	private void buildActivity()
+	private void buildHasActivity()
 	{
-		OntProperty Activity = ProvisionModel.createOntProperty(NS + "Activity");
+		OntProperty HasActivity = ProvisionModel.createOntProperty(NS + "hasActivity");
 
-		//********ACTIVITY Property
-		Activity.addDomain(ProvisionModel.getOntClass(NS + "Power"));
-		Activity.addDomain(ProvisionModel.getOntClass(NS + "Liability"));
-		Activity.addRange(OWL.Class);
+		//Construction of a Domain as Union of Provision classes
+		UnionClass HasActivityDomain = ProvisionModel.createUnionClass(null, null);
 		
+		HasActivityDomain.addOperand(ProvisionModel.getOntClass(NS + "Power"));
+		HasActivityDomain.addOperand(ProvisionModel.getOntClass(NS + "Liability"));
+		
+		//********hasActivity Property
+		HasActivity.addDomain(HasActivityDomain);
+		HasActivity.addRange(OWL.Class);
 		
 	}
 	
-	private void buildObject()
+	private void buildHasObject()
 	{
-		OntProperty Object = ProvisionModel.createOntProperty(NS + "Object");
+		OntProperty HasObject = ProvisionModel.createOntProperty(NS + "hasObject");
 		
-		
+		//Construction of a Domain as Union of Provision classes
+		UnionClass HasObjectDomain = ProvisionModel.createUnionClass(null, null);
+				
 		//********OBJECT Property
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Procedure"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Power"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Liability"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Status"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Right"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Duty"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Prohibition"));
-		Object.addDomain(ProvisionModel.getOntClass(NS + "Permission"));
-		Object.addRange(OWL.Class);
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Procedure"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Power"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Liability"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Status"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Right"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Duty"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Prohibition"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Permission"));
+		
+		HasObject.addDomain(HasObjectDomain);
+		HasObject.addRange(OWL.Class);
 
 		
 	}
 	
-	private void buildBearer()
+	private void buildHasBearer()
 	{
-		OntProperty Bearer = ProvisionModel.createOntProperty(NS + "Bearer");
+		OntProperty HasBearer = ProvisionModel.createOntProperty(NS + "hasBearer");
 
-		//********BEARER Property
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Right"));
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Duty"));
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Prohibition"));
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Permission"));
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Redress"));
-		Bearer.addDomain(ProvisionModel.getOntClass(NS + "Violation"));
-		Bearer.addRange(OWL.Class);
+		//Construction of a Domain as Union of Provision classes
+		UnionClass HasObjectDomain = ProvisionModel.createUnionClass(null, null);
+		
+		//********hasBearer Property
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Right"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Duty"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Prohibition"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Permission"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Redress"));
+		HasObjectDomain.addOperand(ProvisionModel.getOntClass(NS + "Violation"));
+		
+		HasBearer.addDomain(HasObjectDomain);
+		HasBearer.addRange(OWL.Class);
 		
 	}
 	
-	private void buildActionProp()
+	private void buildHasActionProp()
 	{
-		OntProperty ActionProp = ProvisionModel.createOntProperty(NS + "ActionProp");
+		OntProperty HasActionProp = ProvisionModel.createOntProperty(NS + "hasActionProp");
 		
-		//********ACTION Property
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Procedure"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Right"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Duty"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Prohibition"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Permission"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Redress"));
-		ActionProp.addDomain(ProvisionModel.getOntClass(NS + "Violation"));
-		ActionProp.addRange(OWL.Class);
+		//Construction of a Domain as Union of Provision classes
+		UnionClass HasActionPropDomain = ProvisionModel.createUnionClass(null, null);
+		
+		//********hasActionProp Property
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Procedure"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Right"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Duty"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Prohibition"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Permission"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Redress"));
+		HasActionPropDomain.addOperand(ProvisionModel.getOntClass(NS + "Violation"));
+		
+		HasActionProp.addDomain(HasActionPropDomain);
+		HasActionProp.addRange(OWL.Class);
 		
 		
 	}
 	
-	private void buildEffect()
+	private void buildHasEffect()
 	{
-		OntProperty Effect = ProvisionModel.createOntProperty(NS + "Effect");
+		OntProperty HasEffect = ProvisionModel.createOntProperty(NS + "hasEffect");
+
 		
 		//********EFFECT Property		
-		Effect.addDomain(ProvisionModel.getOntClass(NS + "Redress"));
-		Effect.addRange(OWL.Class);
+		HasEffect.addDomain(ProvisionModel.getOntClass(NS + "Redress"));
+		HasEffect.addRange(OWL.Class);
 
 		
 	}
 	
-	private void buildPenalty()
+	private void buildHasPenalty()
 	{
-		OntProperty Penalty = ProvisionModel.createOntProperty(NS + "Penalty");
+		OntProperty HasPenalty = ProvisionModel.createOntProperty(NS + "hasPenalty");
 		
 		//********PENALTY Property	
-		Penalty.addDomain(ProvisionModel.getOntClass(NS + "Violation"));
-		Penalty.addRange(OWL.Class);
+		HasPenalty.addDomain(ProvisionModel.getOntClass(NS + "Violation"));
+		HasPenalty.addRange(OWL.Class);
 		
 	}
 		
@@ -340,13 +428,12 @@ public class ProvisionModelFactory {
 	
 		
 		ProvisionModelFactory ProvisionModelF = new ProvisionModelFactory(); 
-		ProvisionModelF.setBaseURI();
-		ProvisionModelF.setNS();
+
 		
 		OntModel ProvisionModel = ProvisionModelF.getProvisionModel();
 		
-		ExtendedIterator<OntClass> TopClasses = OntUtils.getTopClasses(ProvisionModel);
-	    OntUtils.showClassesList(TopClasses);
+//		ExtendedIterator<OntClass> TopClasses = OntUtils.getTopClasses(ProvisionModel);
+//	    OntUtils.showClassesList(TopClasses);
 		
 		/*ExtendedIterator<OntClass> iter = ProvisionModel.listNamedClasses();
 	    while(iter.hasNext()) {
@@ -359,7 +446,7 @@ public class ProvisionModelFactory {
 		File file = new File("ProvisionModel.rdf");
 	    FileOutputStream f = new FileOutputStream(file);
 		
-	    ProvisionModel.write(f);
+	    ProvisionModel.write(f, "RDF/XML-ABBREV");
 	    
 	    
 		/*ProvisionModelViewer ProvisionModelV = new ProvisionModelViewer();
