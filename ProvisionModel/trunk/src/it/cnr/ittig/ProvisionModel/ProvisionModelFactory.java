@@ -4,11 +4,12 @@ package it.cnr.ittig.ProvisionModel;
 //import com.hp.hpl.jena.ontology.ObjectProperty;
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.ontology.OntModelSpec;
 import com.hp.hpl.jena.ontology.OntProperty;
 import com.hp.hpl.jena.ontology.UnionClass;
 
 import com.hp.hpl.jena.rdf.model.*;
-import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+//import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import com.hp.hpl.jena.vocabulary.OWL;
 //import com.hp.hpl.jena.vocabulary.RDFS;
 import com.hp.hpl.jena.vocabulary.XSD;
@@ -43,7 +44,7 @@ public class ProvisionModelFactory {
 	public OntModel getProvisionModel() {
 
 		// Create an empty Provision Ontology Model
-		ProvisionModel = ModelFactory.createOntologyModel();
+		ProvisionModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
 
 		
 		//******BUILD TOP CLASSES
@@ -199,29 +200,31 @@ public class ProvisionModelFactory {
 	{
 		//Implicit Regulative - "Action" Sub Class
 		OntClass ImplicitRight = ProvisionModel.createClass(NS + "ImplicitRight");
-		OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
-		Duty.addEquivalentClass(ImplicitRight);
+		//OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
+		//Duty.addEquivalentClass(ImplicitRight);
 		
 		
 		//Proprietˆ di ImplicitRight
-		OntProperty ImplicitBearer = ProvisionModel.createOntProperty(NS + "ImplicitBearer");
-		OntProperty ImplicitCounterpart = ProvisionModel.createOntProperty(NS + "ImplicitCounterpart");
+		OntProperty HasImplicitBearer = ProvisionModel.createOntProperty(NS + "hasImplicitBearer");
+		OntProperty HasImplicitCounterpart = ProvisionModel.createOntProperty(NS + "hasImplicitCounterpart");
+		
+			
+		HasImplicitBearer.addDomain(ImplicitRight);
+		HasImplicitBearer.addRange(OWL.Class);
+		
+		HasImplicitCounterpart.addDomain(ImplicitRight);
+		HasImplicitCounterpart.addRange(OWL.Class);
 		
 		
-	//*******
-	//***	Selezionare proprietˆ Bearer con dominio Duty (Restriction)
-		
-	//	
-		
-	//	Aggiungere propritˆ equivalente ImplicitCounterpart
-	//***************
-		
-		ImplicitBearer.addDomain(ImplicitRight);
-		ImplicitBearer.addRange(OWL.Class);
-		
-		ImplicitCounterpart.addDomain(ImplicitRight);
-		ImplicitCounterpart.addRange(OWL.Class);
-		
+		//*******
+		//***	Selezionare proprietˆ Bearer con dominio Duty (Restriction)
+			
+		//	
+			
+		//	Aggiungere proprietˆ equivalente ImplicitCounterpart
+		//***************		
+		HasImplicitCounterpart.addEquivalentProperty(ProvisionModel.getOntProperty(NS + "hasBearer"));
+		HasImplicitBearer.addEquivalentProperty(ProvisionModel.getOntProperty(NS + "hasCounterpart"));
 		
 		//Duty ha come Right implicito ImplicitRight (FORSE E' SUFFICIENTE L'ASSIOMA DI EQUIVALENZA?)
 		//OntClass Duty = ProvisionModel.getOntClass(NS + "Duty");
