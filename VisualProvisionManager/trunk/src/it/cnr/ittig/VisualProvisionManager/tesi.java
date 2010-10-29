@@ -25,28 +25,25 @@ import it.cnr.ittig.ProvisionModel.*;
 
 
 
-public class tesi {
-	private static JFrame frame;
-	private static JPanel panel;
-	private static OntModel model=ModelFactory.createOntologyModel();
-	private static String savedPath;//UTILE PER VEDERE SE UN DATO FILE E' GIA' STATO SALVATO ED IN CHE PATH 
-	private static Document document=null;
-	private static JTextArea text;
-	private static JPanel subPanel,subPanel1;
-	private static boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
-	private static boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando 
+public class tesi extends JFrame{
+	//private static JFrame frame;
+	private  JPanel panel;
+	private  OntModel model=ModelFactory.createOntologyModel();
+	private  String savedPath;//UTILE PER VEDERE SE UN DATO FILE E' GIA' STATO SALVATO ED IN CHE PATH 
+	private  Document document=null;
+	private  JTextArea text;
+	private  JPanel subPanel,subPanel1;
+	private  boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
+	private  boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando 
 	//si apre un nuovo documento con il documento iniziale mai modificato
 	public static void main(String [] args){
+		
+		
 		Runnable runner= new Runnable(){
 			public void run(){
-				frame= createInterface(); 
-			};
-		};
-		EventQueue.invokeLater(runner);
-		};
-	
-	public static JFrame createInterface(){
-		frame= new JFrame("Applicazione");
+				final tesi frame=new tesi();
+
+		//tesi frame= new JFrame("Applicazione");
 		//TODO non chiede conferma o salvataggio del lavoro
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
@@ -117,12 +114,12 @@ public class tesi {
 			public void actionPerformed(ActionEvent e){
 				int conferma = JOptionPane.showConfirmDialog(frame,"Sei sicuro di voler uscire?","Termina l'applicazione",JOptionPane.YES_NO_OPTION);
 				if(conferma==0){
-					if(modified)
+					if(frame.modified)
 					{
 						conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
 						if(conferma==0)
 						{
-							saveFileWithName();
+							saveFileWithName(frame);
 						}
 					}
 					System.exit(0);	
@@ -137,23 +134,23 @@ public class tesi {
 				int conferma=JOptionPane.showConfirmDialog(frame,"Creare un nuovo documento?","Nuovo documento",JOptionPane.YES_NO_OPTION);
 				if(conferma==0)
 				{
-					if(!init){
+					if(!frame.init){
 						System.out.println("ffff");
 					}
-					else {if(modified)
+					else {if(frame.modified)
 					{
 						conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
 					}
 					if(conferma==0)
 					{
-						saveFileWithName();
+						saveFileWithName(frame);
 					}
 				}
-				System.out.println(text.getText());document=null;
-				text.setText("");
-				init=false;
-				modified=false;
-				savedPath=null;
+				System.out.println(frame.text.getText());frame.document=null;
+				frame.text.setText("");
+				frame.init=false;
+				frame.modified=false;
+				frame.savedPath=null;
 				//text=null;
 				//text=new JTextArea();
 				//subPanel.add(text);
@@ -173,16 +170,16 @@ public class tesi {
 				int conferma=JOptionPane.showConfirmDialog(frame,"Aprire un nuovo documento?","Apertura documento",JOptionPane.YES_NO_OPTION);
 				if(conferma==0)
 				{
-					if(!init){
+					if(!frame.init){
 						System.out.println("ffff");
 					}
-					else {if(modified)
+					else {if(frame.modified)
 					{
 						conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
 					}
 					if(conferma==0)
 					{
-						saveFileWithName();
+						saveFileWithName(frame);
 					}
 				}
 				final JFileChooser chooser = new JFileChooser();
@@ -199,15 +196,15 @@ public class tesi {
 			        }else{
 			        	// lettura del file aperto
 			        	//model = ModelFactory.createDefaultModel();
-			        	text.setText("");
-			        	savedPath=path;
-			        	model.read(in, "");
+			        	frame.text.setText("");
+			        	frame.savedPath=path;
+			        	frame.model.read(in, "");
 			        	ByteArrayOutputStream bout=new ByteArrayOutputStream();
 			           //riscrittura del file su standard output (togliere, per ora controllo almeno gli errori)
-			        	model.write(bout);
-			        	text.setText(new String(bout.toByteArray()));
-						init=false;
-						modified=false;
+			        	frame.model.write(bout);
+			        	frame.text.setText(new String(bout.toByteArray()));
+			        	frame.init=false;
+			        	frame.modified=false;
 			        }
 				}if(status == JFileChooser.ERROR_OPTION){
 				// TO DO GESTIRE LA SITUAZIONE DI ERRORE
@@ -228,14 +225,14 @@ public class tesi {
 		ActionListener actionSaveWithName=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
-				saveFileWithName();
+				saveFileWithName(frame);
 			}
 		};
 		//Listener per salvare un File//TODO salvare realmente un file adesso salvo solo l'intestazione rdf, far partire il file chooser da una directory particolare
 		ActionListener actionSave=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
-				saveFile();
+				saveFile(frame);
 			}
 		};
 		
@@ -304,22 +301,23 @@ public class tesi {
 		
 		//creo l'area di testo principale
 		Container contentPane=frame.getContentPane();//creo il pannello posto nell'area centrale
-		panel=new JPanel();
+		frame.panel=new JPanel();
 		//panel.setPreferredSize(contentPane.getSize());
-		text=new JTextArea(30,30); //TODO CAMBIA, FALLA DI DIMENSIONI "AUTOIMPOSTANTI"
-		text.setLineWrap(true);
-		text.setWrapStyleWord(true);
-		JScrollPane scroll=new JScrollPane(text);
+		frame.text=new JTextArea(30,30); //TODO CAMBIA, FALLA DI DIMENSIONI "AUTOIMPOSTANTI"
+		frame.text.setLineWrap(true);
+		frame.text.setWrapStyleWord(true);
+		JScrollPane scroll=new JScrollPane(frame.text);
 		System.out.println ("dimensione "+contentPane.getSize());
-		contentPane.add(panel,BorderLayout.CENTER);
-		panel.setLayout(new FlowLayout(FlowLayout.LEFT));
-		subPanel=new JPanel();
-		Border border=BorderFactory.createLineBorder(Color.black, 5);
-		subPanel.setBorder(border);
-		subPanel.add(scroll);
-		panel.add(subPanel);
-		System.out.println("Dimensione subpanel"+subPanel.getSize());
-		document=text.getDocument();//Imposto la variabile di classe document ad essere il document della textarea
+		contentPane.add(frame.panel,BorderLayout.CENTER);
+		frame.panel.setLayout(new FlowLayout(FlowLayout.LEFT));
+		frame.subPanel=new JPanel();
+		//Border border=BorderFactory.createLineBorder(Color.black, 5);
+		Border border=BorderFactory.createEmptyBorder();
+		frame.subPanel.setBorder(border);
+		frame.subPanel.add(scroll);
+		frame.panel.add(frame.subPanel);
+		System.out.println("Dimensione subpanel"+frame.subPanel.getSize());
+		frame.document=frame.text.getDocument();//Imposto la variabile di classe document ad essere il document della textarea
 		
 		
 		
@@ -327,44 +325,43 @@ public class tesi {
 		
 		class DocumentGesture implements DocumentListener{
 			public void changedUpdate(DocumentEvent e){
-				init=true; //indico che il documento ha subito una qualsiasi operazione
-				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
+				frame.init=true; //indico che il documento ha subito una qualsiasi operazione
+				frame.modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
 				System.out.println("CAmbiamento");
 			}
 			public void insertUpdate(DocumentEvent e){
-				init=true; //indico che il documento ha subito una qualsiasi operazione
-				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
+				frame.init=true; //indico che il documento ha subito una qualsiasi operazione
+				frame.modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
 				System.out.println("Inserimento");
 				return;
 			}
 			public void removeUpdate(DocumentEvent e){
-				init=true; //indico che il documento ha subito una qualsiasi operazione
-				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
+				frame.init=true; //indico che il documento ha subito una qualsiasi operazione
+				frame.modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
 				System.out.println("rimozione");
 				return;
 			}
 		}
-		document.addDocumentListener(new DocumentGesture());
+		frame.document.addDocumentListener(new DocumentGesture());
 		//creo l'albero dei raggruppamenti TODO gestirlo
 		JTree tree=new JTree();
 		tree.setEditable(true);
-		subPanel1=new JPanel();
+		frame.subPanel1=new JPanel();
 		Border border1=BorderFactory.createLineBorder(Color.black, 2);
-		subPanel.setBorder(border);
-		subPanel1.add(tree);
+		frame.subPanel.setBorder(border);
+		frame.subPanel1.add(tree);
 		//panel.add(subPanel1);
 		 
 		frame.setVisible(true);
-		return frame;
 		
 	}
-	private static void saveFile()
+	private  void saveFile(tesi frame)
 	{
 		File selectedFile;
 		FileWriter writer=null;
-		if(savedPath!=null){
+		if(frame.savedPath!=null){
 			System.out.println("Risalvataggio");
-			selectedFile=new File(savedPath);
+			selectedFile=new File(frame.savedPath);
 			try{
 				 writer=new FileWriter(selectedFile);
 			}
@@ -372,20 +369,20 @@ public class tesi {
 				JOptionPane.showMessageDialog(frame,"Errore nel salvataggio del file", "Errore", JOptionPane.ERROR_MESSAGE);
 			}
 			if(writer != null){
-				model.write(writer);
-				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
-				System.out.println(savedPath);
+				frame.model.write(writer);
+				frame.modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
+				System.out.println(frame.savedPath);
 			}
 			
 		}
 		else
 		{
-			saveFileWithName();
+			saveFileWithName(frame);
 		}
 	}
 
 	
-	private static void saveFileWithName() //salva un documento su un nuovo file TODO salvare per bene il documento
+	private void saveFileWithName(tesi frame) //salva un documento su un nuovo file TODO salvare per bene il documento
 	{
 		final JFileChooser chooser1 = new JFileChooser();
 		chooser1.setFileFilter(new RDFFileFilter());
@@ -421,11 +418,11 @@ public class tesi {
 			}
 			if(writer != null){
 				// model= ModelFactory.createDefaultModel();
-				model.write(writer);
-				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
+				frame.	model.write(writer);
+				frame.modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
 				//AGGIORNO IL SAVED PATH 
-				savedPath=path;
-				System.out.println(savedPath);
+				frame.savedPath=path;
+				System.out.println(frame.savedPath);
 			}
 		}if(status == JFileChooser.ERROR_OPTION){
 		// TO DO GESTIRE LA SITUAZIONE DI ERRORE
@@ -437,7 +434,7 @@ public class tesi {
 		}
 	
 	//classe per filtrare i file con estensione RDF GIUSTO?
-	static class RDFFileFilter extends FileFilter {
+	 class RDFFileFilter extends FileFilter {
 
 		  public boolean accept(File file) {
 		    if (file.isDirectory()) return true;
@@ -449,4 +446,6 @@ public class tesi {
 		    return "File RDF";
 		  }
 		}
+};
+	};
 }

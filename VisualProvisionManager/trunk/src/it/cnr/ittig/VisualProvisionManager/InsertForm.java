@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -54,6 +55,8 @@ public class InsertForm extends JDialog{
 		//IMPOSTO LA FINESTRA A MODALE E CREO GLI ELEMENTI COMUNI A TUTTI I FORM
 		//setLocation(500,50);//da migliorare l'apparizione su schermo
 		setModal(true);
+		Point p=applicationFrame.getLocation();
+		setLocation(p.x,p.y);
 		java.awt.Container cont=getContentPane();
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		screen.setLayout(new BorderLayout());
@@ -125,8 +128,6 @@ public class InsertForm extends JDialog{
 			//down.add(label4);
 			down.add(scroller);
 			screen.add(panel,BorderLayout.NORTH);
-			//screen.add(empty,BorderLayout.EAST);
-			//screen.add(empty,BorderLayout.WEST);
 			screen.add(label4,BorderLayout.CENTER);
 			screen.add(down,BorderLayout.SOUTH);
 			cont.setLayout(new BorderLayout());
@@ -372,7 +373,7 @@ public class InsertForm extends JDialog{
 			cont.add(pan,BorderLayout.SOUTH);
 		}//GESTISCO I FORM CON 4 ARGOMENTI PARI A DESTINATARIO,CONTROPARTE,ATTIVITA',OGGETTO
 		else if(type=="power"||type=="liability"){
-			label3.setText("Inserire attività");
+			label2.setText("Inserire attività");
 			panel.setLayout(new GridLayout(8,2));
 			down.setLayout(new GridLayout(2,1));
 			JPanel pan=new JPanel(new FlowLayout());

@@ -4,7 +4,10 @@ import it.cnr.ittig.VisualProvisionManager.applicationFrame.RDFFileFilter;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Hashtable;
 
+import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -17,7 +20,6 @@ public class FrameUtil {
 		File selectedFile;
 		FileWriter writer=null;
 		if(savedPath!=null){
-			System.out.println("Risalvataggio");
 			selectedFile=new File(savedPath);
 			try{
 				 writer=new FileWriter(selectedFile);
@@ -29,6 +31,12 @@ public class FrameUtil {
 				model.write(writer);
 				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
 				System.out.println(savedPath);
+				try{
+					writer.close();
+				}catch(IOException ex){
+					System.out.println("Errore nel chiusura del writer");
+					ex.printStackTrace();
+				}
 			}
 			
 		}
@@ -55,7 +63,6 @@ public class FrameUtil {
 				//System.out.println("path ends with RDF");
 				int length=path.length()-4;
 				path=path.substring(0,length);
-				System.out.print(path);
 				path=path+".rdf";
 				selectedFile=new File(path);
 			}
@@ -65,7 +72,6 @@ public class FrameUtil {
 				selectedFile=new File(path);
 				//System.out.print("path not ends with rdf");
 			}
-			System.out.println("Selezionato " + path );
 			FileWriter writer=null;
 			try{
 				 writer=new FileWriter(selectedFile);
@@ -79,7 +85,12 @@ public class FrameUtil {
 				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
 				//AGGIORNO IL SAVED PATH 
 				savedPath=path;
-				System.out.println(savedPath);
+				try{
+					writer.close();
+				}catch(IOException ex){
+					System.out.println("Errore nel chiusura del writer");
+					ex.printStackTrace();
+				}
 			}
 		}if(status == JFileChooser.ERROR_OPTION){
 		// TO DO GESTIRE LA SITUAZIONE DI ERRORE
@@ -87,8 +98,7 @@ public class FrameUtil {
 		else{
 			//SCELGO ANNULLA, NON FARE NIENTE
 		}
-			
-		}
+	}
 	
 	public static boolean stringWithCarachter(String str)
 	{
@@ -105,5 +115,14 @@ public class FrameUtil {
 		}		
 		return ret;
 	}
+	
+	public static Action findAction(Action actions[], String key) { //POTREI MIGLIORARLO; QUI RICREA L'HASTHTABLE OGNI VOLTA
+		Hashtable<Object, Action> commands = new Hashtable<Object, Action>();
+		for (int i = 0; i < actions.length; i++) {
+		Action action = actions[i];
+		commands.put(action.getValue(Action.NAME), action);
+		}
+		return commands.get(key);
+		}
 
 }

@@ -1,23 +1,31 @@
 package it.cnr.ittig.VisualProvisionManager;
 
+import javax.swing.JFrame;
+import com.hp.hpl.jena.rdf.model.*;
+import it.cnr.ittig.ProvisionModel.OntUtils;
 import it.cnr.ittig.ProvisionModel.ProvisionModelFactory;
 import it.cnr.ittig.VisualProvisionManager.Provision.Provision;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Vector;
+
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -41,19 +49,31 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 
 import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.ontology.OntDocumentManager;
 import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.ontology.OntModelSpec;
 import com.hp.hpl.jena.util.FileManager;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 
-public class applicationFrame extends JFrame {
+public class ProvisionFrame extends JFrame{
 	private JPanel panel;
 	private ProvisionModelFactory provisionModelFactory=new ProvisionModelFactory();
-	private OntModel model;
+	private OntModel model; //TOGLIERE? PROBLEMA CON SOTTOCLASSI (USA TRANSITIVITA') E PROPRIETA' DELLE CLASSI(PROPRIETA' CONDIVISE NON RESTITUITE)
+	private OntModel modelBase; //MODEL SENZA REASONER
+	private OntModel modelOutput;	//MODEL DI OUTPUT DOVE VERRANNO SALVATE LE ISTANZE CREATE
 	private String savedPath;//UTILE PER VEDERE SE UN DATO FILE E' GIA' STATO SALVATO ED IN CHE PATH 
 	private Document document=null;
 	private JTextArea text;
 	private JPanel subPanel;
+	private JPanel provisionPanel; //PANNELLO DOVE SI VISUALIZZANO LE DISPOSIZIONI (RIFLETTI SE LASCIAR QUI LA DICHIARAZIONE)
+	private JTree tree; //ALBERO DELLE DISPOSIZIONI
+	private JTree provisionTree;//ALBERO DI PROVA
+	private DefaultMutableTreeNode radice=new DefaultMutableTreeNode("Disposizioni");
 	//private JDesktopPane desktop = new JDesktopPane();
 	private boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
 	private boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando
@@ -68,12 +88,19 @@ public class applicationFrame extends JFrame {
 	private String definiendum=null;
 	private String definiens=null;
 	private String activity=null;
-	private String[] vec={"A","B"};
+	//private String[] vec={"A","B"};
+	private Vector <Provision> provisions=new Vector<Provision>();
+	private int range=551; // INDICA QUANTE DISPOSIZIONI DI OGNI TIPO SONO GESTIBILI DAL PROGRAMMA (range-1)
+	private Vector <String> usedID=new Vector<String>(); //TIENE TRACCIA DEGLI ID USATI PER LE DISPOSIZIONI, MEGLIO COME VECTOR?
+	//private Vector <OntClass> rootVector;//CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
+	private Vector <OntClass> rootVector;//CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
+	//private Vector <String>  root;//CONTIENE TUTTI I TIPI DI DISPOSIZIONI DEL MODELLO
+	
 	
 	public static void main(String[] args){
 		Runnable runner=new Runnable(){
 		public void run(){
-		final applicationFrame frame=new applicationFrame();
+		final ProvisionFrame frame=new ProvisionFrame();
 		frame.setTitle("Applicazione");
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -83,6 +110,8 @@ public class applicationFrame extends JFrame {
 		frame.text.setLineWrap(true);
 		frame.text.setWrapStyleWord(true);
 		frame.loadModel();
+		
+		frame.provisionTree=new JTree(frame.radice);
 		//riscrittura del file su area di testo (togliere, per ora controllo almeno gli errori)
 		ByteArrayOutputStream bout=null;
 		bout=new ByteArrayOutputStream();
@@ -91,20 +120,44 @@ public class applicationFrame extends JFrame {
 		frame.initializeDimension();
 		frame.createMenu(frame);
 		frame.createMainPanel(frame);
-		//Listener per chiudere l'applicazione (non fa salvare i dati)
 		frame.setVisible(true);
 		}	
 	};
 	EventQueue.invokeLater(runner);
 	}
+	
+	
 	//CARICA IL MODELLO CONTENUTO NEL PROVISIONMODEL
-	public void loadModel(){
-		//provisionModelFactory.setBaseURI();
-		//provisionModelFactory.setNS();
+	private void loadModel(){
 		model=provisionModelFactory.getProvisionModel();
+		modelBase=ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
+		InputStream in = FileManager.get().open("C:/ProvisionModel.rdf");
+		modelBase.read(in, "");
+		modelOutput=ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM,null);
+		//modelOutput.addSubModel(modelBase);
+		//model.addLoadedImport("C:/ProvisionModel.rdf");
+		/*OntDocumentManager manager=new OntDocumentManager();
+		manager.loadImport(modelOutput,"C:/ProvisionModel.rdf")*/;
+		in = FileManager.get().open("C:/ProvisionModel.rdf");
+		modelOutput.read(in,"RDF/XML-ABBREV");
+		ExtendedIterator r=modelOutput.listSubModels();
+		if(!r.hasNext())System.out.println("No import");
+		while (r.hasNext()){
+		System.out.println("Importo"+r.next());
+		}
+		/*in = FileManager.get().open("C:/ProvisionModel.rdf");
+		OntModelSpec withReasoner=new OntModelSpec(OntModelSpec.OWL_MEM_RULE_INF); //PROBLEMA TROVARE UN REASONER FUNZIONANTE CON LE PROPRIETA' CONDIVISE
+		//withReasoner.setReasoner(new OWLFBRuleReasoner(new OWLFBRuleReasonerFactory()));
+		modelReasoner=ModelFactory.createOntologyModel(withReasoner);
+		modelReasoner.read(in, "");
+		System.out.println("Specifiche "+model.getSpecification().getReasoner());
+		model.getSpecification().setReasoner((new OWLMicroReasoner(new OWLMicroReasonerFactory())));
+		System.out.println("Specifiche di base  "+modelBase.getSpecification().getReasoner());
+		System.out.println("Specifiche avanzate  "+modelReasoner.getSpecification().getReasoner());*/
+
 	}
 	
-	public void initializeDimension(){
+	private void initializeDimension(){
 		//imposto le dimensioni della finesta basate sulle dimensioni dello schermo/2
 		Toolkit toolkit=Toolkit.getDefaultToolkit();
 		Dimension screen=toolkit.getScreenSize();
@@ -113,8 +166,64 @@ public class applicationFrame extends JFrame {
 		setSize(larghezza,altezza);
 		setLocation(larghezza/2,altezza/2);
 	}
-	public void createMenu(final applicationFrame frame){
-		//Creo la barra dei menu
+	
+	//CREA IL MENU DI INSERIMENTO DELLE DISPOSIZIONI LEGGENDO DALL'ONTMODEL SENZA REASONER
+	//frame e l'applicativo principale (utile perchè il listener deve lavorare su una variabile final), ont la classe padre in cui inserire
+	//(come menu o menuItem), menuOnt il padre in cui inserire ont
+	//INOLTRE CREO ANCHE L'ALBERO DELLE DISPOSIZIONI
+	/*private void insertMenu(final ProvisionFrame frame,OntClass ont, JMenu menuOnt,DefaultMutableTreeNode node){
+		ExtendedIterator<OntClass> iter1=ont.listSubClasses();
+		OntClass figlio;
+		while(iter1.hasNext()){
+			figlio=iter1.next(); 
+			if(figlio.hasSubClass()){
+				JMenu menuFiglio=new JMenu(getProvisionType(figlio));
+				menuOnt.add(menuFiglio);
+				//root.add(figlio);
+				insertMenu(frame,figlio,menuFiglio,node);				
+			}else{
+				final OntClass figlio1=figlio;//UTILE PERCHE' IL LISTENER SUCCESSIVO DEVE LAVORARE SU UNA VARIABILE FINAL
+				JMenuItem menuItemFiglio=new JMenuItem(getProvisionType(figlio));
+				root.add(getProvisionType(figlio1));
+				DefaultMutableTreeNode child=new DefaultMutableTreeNode(figlio);
+				node.insert(child, 0);
+				menuOnt.add(menuItemFiglio);
+				menuItemFiglio.addActionListener(new ActionListener(){
+					public void actionPerformed(ActionEvent e){
+						InsertWindow win=new InsertWindow(frame,modelBase,figlio1);
+					}
+				});
+			}
+		}
+	}*/
+	
+	private void insertMenu(final ProvisionFrame frame,OntClass ont, JMenu menuOnt){
+		ExtendedIterator<OntClass> iter1=ont.listSubClasses();
+		OntClass figlio;
+		while(iter1.hasNext()){
+			figlio=iter1.next(); 
+			if(figlio.hasSubClass()){
+				JMenu menuFiglio=new JMenu(getProvisionType(figlio));
+				menuOnt.add(menuFiglio);
+				//root.add(figlio);
+				insertMenu(frame,figlio,menuFiglio);				
+			}else{
+				final OntClass figlio1=figlio;//UTILE PERCHE' IL LISTENER SUCCESSIVO DEVE LAVORARE SU UNA VARIABILE FINAL
+				JMenuItem menuItemFiglio=new JMenuItem(getProvisionType(figlio));
+				//root.add(getProvisionType(figlio1));
+				DefaultMutableTreeNode child=new DefaultMutableTreeNode(getProvisionType(figlio));
+				menuOnt.add(menuItemFiglio);
+				radice.add(child);// AGGIUNGO IL NODO DELLA DISPOSIZIONI COME FIGLIO DELLA RADICE
+			//	radice.insert(child,radice.getChildCount());
+				menuItemFiglio.addActionListener(new ActionListener(){
+					public void actionPerformed(ActionEvent e){
+						InsertWindow win=new InsertWindow(frame,modelBase,figlio1);
+					}
+				});
+			}
+		}
+	}
+	public void createMenu(final ProvisionFrame frame){
 		JMenuBar menubar= new JMenuBar();
 		
 		//Creo le voci dei menù e relativi mnemonici
@@ -122,7 +231,6 @@ public class applicationFrame extends JFrame {
 		menu.setMnemonic('f');
 		JMenu menu1=new JMenu("Edit");
 		menu1.setMnemonic('e');
-		//creo i MenuItem
 		//creo i MenuItem
 		JMenuItem item=new JMenuItem("Nuovo",KeyEvent.VK_N);
 		KeyStroke ctrlShiftNKeyStroke = KeyStroke.getKeyStroke("control shift N");
@@ -156,36 +264,54 @@ public class applicationFrame extends JFrame {
 		itemA2.setMnemonic(KeyEvent.VK_I);
 		JMenu insertMenu=new JMenu("Inserisci"); //menu per l'inserimento dei vari tipi di disposizioni
 		insertMenu.setMnemonic(KeyEvent.VK_N);
-		JMenu constitutiveMenu=new JMenu("Constituive rule");
-		JMenu regulativeMenu=new JMenu("Regulative rule");
-		constitutiveMenu.setMnemonic(KeyEvent.VK_C);
-		regulativeMenu.setMnemonic(KeyEvent.VK_R);
-		JMenu definition=new JMenu("Definition");
-		JMenu creation=new JMenu("Creation");
-		JMenu attribution=new JMenu("Attribution");
-		definition.setMnemonic(KeyEvent.VK_D);
-		creation.setMnemonic(KeyEvent.VK_C);
-		attribution.setMnemonic(KeyEvent.VK_A);
-		JMenu action=new JMenu("Action");
-		JMenu remedy=new JMenu("Remedy");
-		action.setMnemonic(KeyEvent.VK_A);
-		remedy.setMnemonic(KeyEvent.VK_R);
-		JMenuItem termItem=new JMenuItem("Term",KeyEvent.VK_T);
-		JMenuItem procedureItem=new JMenuItem("Procedure",KeyEvent.VK_P);
-		JMenuItem establishmentItem=new JMenuItem("Establishment",KeyEvent.VK_E);
-		JMenuItem organizationItem=new JMenuItem("Organization",KeyEvent.VK_O);
-		JMenuItem powerItem=new JMenuItem("Power",KeyEvent.VK_P);
-		JMenuItem liabilityItem=new JMenuItem("Liability",KeyEvent.VK_L);
-		JMenuItem statusItem=new JMenuItem("Status",KeyEvent.VK_S);
-		JMenuItem rightItem=new JMenuItem("Right",KeyEvent.VK_R);
-		JMenuItem dutyItem=new JMenuItem("Duty",KeyEvent.VK_D);
-		JMenuItem prohibitionItem=new JMenuItem("Prohibition",KeyEvent.VK_P);
-		JMenuItem permissionItem=new JMenuItem("Permission",KeyEvent.VK_E);
-		JMenuItem redressItem=new JMenuItem("Redress",KeyEvent.VK_R);
-		JMenuItem violationItem=new JMenuItem("Violation",KeyEvent.VK_V);
+		JMenuItem itemCerca=new JMenuItem("Cerca");
+		itemCerca.setMnemonic(KeyEvent.VK_E);
+		menu.add(item);
+		menu.add(item1);
+		menu.addSeparator();
+		menu.add(item2);
+		menu.add(item3);
+		menu.addSeparator();
+		menu.add(item4);
+		menu1.add(itemA);
+		menu1.add(itemA1);
+		menu1.add(itemA2);
+		menu1.addSeparator();
+		menu1.add(insertMenu);
+		menu1.addSeparator();
+		menu1.add(itemCerca);
 		
-		
-		//UTILE PER QUANDO SI CHIUDE L'APPLICAZIONE DALLA X IN ALTO A DESTRA
+		//PROCEDO CON LA CREAZIONE DEL MENU DI INSERIMENTO DELLE DISPOSIZIONI
+		OntClass ont;
+		ExtendedIterator <OntClass>  iter=OntUtils.getTopClasses(modelBase);//CERCO LA CLASSE DI GERARCHIA PIU' ALTA
+		//rootVector=new Vector<OntClass>(); //CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
+		//root=new Vector();
+		while(iter.hasNext()){
+			ont=iter.next();
+			if(ont.isUnionClass()){
+				//NON INSERIRE
+			}
+			else if(getProvisionType(ont).equals("ImplicitRight")){
+				//NON INSERIRE
+				}
+			//insertMenu(frame, ont, insertMenu );
+			/*menus[count]=new JMenu(getProvisionType(ont));
+			insertMenu.add(menus[count]);
+			ExtendedIterator<OntClass> iter1=ont.listSubClasses();
+			insertMenu(frame,ont,menus[count]);*/
+				else if(ont.hasSubClass()){
+					//rootVector.add(ont);
+					//DefaultMutableTreeNode root=new DefaultMutableTreeNode(ont);
+					JMenu menuRoot=new JMenu(getProvisionType(ont));
+					insertMenu.add(menuRoot);
+					insertMenu(frame,ont,menuRoot);
+				}
+				else{
+					JMenuItem menuItemRoot=new JMenuItem(getProvisionType(ont));
+					insertMenu.add(menuItemRoot);
+				}
+			}
+		//LISTENER PER LA CHIUSURA DELL'"FORZATA" DELL'APPLICAZIONE (TRAMITE X ALTO A DX O TRAMITE SISTEMA) 
 		addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent we) {
             	int conferma = JOptionPane.showConfirmDialog(frame,"Sei sicuro di voler uscire?","Termina l'applicazione",JOptionPane.YES_NO_OPTION);
@@ -215,8 +341,10 @@ public class applicationFrame extends JFrame {
 						{
 							FrameUtil.saveFileWithName( frame,  frame.model,  frame.modified,  frame.savedPath);
 						}
-					}
-					System.exit(0);	
+						else{ //SE PIGIO ANNULLA QUANDO MI CHIEDE DI SALVARE IL FILE NON ESCO
+						}
+					}	
+					System.exit(0);
 				}
 			}
 		};
@@ -229,26 +357,24 @@ public class applicationFrame extends JFrame {
 				if(conferma==0)
 				{
 					if(!init){
-						System.out.println("ffff");
+						// SE IL DOCUMENTO NON HA SUBITO ALCUN TOCCO NON FA NIENTE
 					}
-					else {if(modified)
-					{
-						conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
+					else {// SE IL DOCUMENTO HA SUBITO MODIFICHE
+						if(modified)//SE NON E' STATO MODIFICATO DALL'ULTIMO SALVATAGGIO
+						{
+							conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
+						}
+						if(conferma==0)//SE VOGLIO SALVARE IL LAVORO
+						{
+							FrameUtil.saveFileWithName( frame,  model,  modified,  savedPath);
+						}
 					}
-					if(conferma==0)
-					{
-						FrameUtil.saveFileWithName( frame,  model,  modified,  savedPath);
-					}
-				}
-				System.out.println(text.getText());document=null;
+				System.out.println(text.getText());
+				document=null; //PER ORA INUTILE
 				text.setText("");
 				init=false;
 				modified=false;
 				savedPath=null;
-				//text=null;
-				//text=new JTextArea();
-				//subPanel.add(text);
-				//System.out.println("Nuovo documento creato");
 				}
 			}
 		};
@@ -261,31 +387,30 @@ public class applicationFrame extends JFrame {
 				if(conferma==0)
 				{
 					if(!init){
-						System.out.println("ffff");
+						// SE IL DOCUMENTO NON HA SUBITO ALCUN TOCCO NON FA NIENTE
 					}
-					else {if(modified)
-					{
-						conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
+					else {// SE IL DOCUMENTO HA SUBITO MODIFICHE
+						if(modified)//SE NON E' STATO MODIFICATO DALL'ULTIMO SALVATAGGIO
+						{
+							conferma=JOptionPane.showConfirmDialog(frame,"Vuoi salvare il lavoro?","Salva",JOptionPane.YES_NO_OPTION);
+						}
+						if(conferma==0)//SE VOGLIO SALVARE IL LAVORO
+						{
+							FrameUtil.saveFileWithName( frame,  model,  modified,  savedPath);
+						}
 					}
-					if(conferma==0)
-					{
-						FrameUtil.saveFileWithName( frame,  model,  modified,  savedPath);
-					}
-				}
 				final JFileChooser chooser = new JFileChooser();
 				chooser.setFileFilter(new RDFFileFilter());
 				int status=chooser.showOpenDialog(frame);
 				if (status == JFileChooser.APPROVE_OPTION) {
 					File selectedFile = chooser.getSelectedFile();
 					String path=selectedFile.getPath();
-					System.out.println("Selezionato " + path);
 					InputStream in = FileManager.get().open(path);
 			        if (in == null) {
 			        	JOptionPane.showMessageDialog(frame,"Errore nell'apertura del file", "Errore", JOptionPane.ERROR_MESSAGE);
 			            throw new IllegalArgumentException( "File: " + path + " not found");
 			        }else{
 			        	// lettura del file aperto
-			        	//model = ModelFactory.createDefaultModel();
 			        	text.setText("");
 			        	savedPath=path;
 			        	model.read(in, "");
@@ -308,221 +433,31 @@ public class applicationFrame extends JFrame {
 		};
 	
 		item1.addActionListener(actionOpen);
-		//Listener per salvare un File con nome//TODO salvare realmente un file adesso salvo solo l'intestazione rdf, far partire il file chooser da una directory particolare
+		//Listener per salvare un File con nome//TODO far partire il file chooser da una directory particolare
 		ActionListener actionSaveWithName=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				FrameUtil.saveFileWithName( frame,  model,  modified,  savedPath);
 			}
 		};
-		//Listener per salvare un File//TODO salvare realmente un file adesso salvo solo l'intestazione rdf, far partire il file chooser da una directory particolare
+		item3.addActionListener(actionSaveWithName);
+		//Listener per salvare un File//TODO far partire il file chooser da una directory particolare
 		ActionListener actionSave=new ActionListener(){
 			public void actionPerformed(ActionEvent e)
 			{
 				FrameUtil.saveFile(frame,  model,  modified,  savedPath);
 			}
 		};
-		
-		ActionListener rightListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				//String dest=null;
-				// SI PUO' TOGLIERE, NEGLI ALTRI MODI L'HO TOLTO String [] result=new String[]{dest,counter,actionS,object,textLaw};
-				InsertForm ins=new InsertForm(frame,frame.vec,"right");
-			/*	System.out.println("Valore destinatario pari a "+dest);//TOGLIERE QUESTE STAMPE
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore azione pari a "+actionS);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);*/
-			/*	String uri="http://provisions.org/model/1.0";
-				String NS=uri + "#";
-				OntClass ont=model.getOntClass(NS+"Right");
-				System.out.println("ont è nullo"+ont.toString());
-				InsertWindow win=new InsertWindow(frame,model,ont);*/
-			}
-		};
-		rightItem.addActionListener(rightListener);
-		//Listener per creare un nuovo Duty
-		ActionListener dutyListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"duty");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore azione pari a "+actionS);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		dutyItem.addActionListener(dutyListener);
-		//Listener per inserire un nuovo prohibition
-		ActionListener prohibitionListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"prohibition");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore azione pari a "+actionS);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		prohibitionItem.addActionListener(prohibitionListener);
-		//Listener per inserire un nuovo permission
-		ActionListener permissionListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"permission");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore azione pari a "+actionS);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		permissionItem.addActionListener(permissionListener);
-		
-		//Listener per inserire nuovo redress
-		ActionListener redressListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"redress");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore effect pari a "+effect);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		redressItem.addActionListener(redressListener);
-		
-		//Listener per inserire nuova violation
-		ActionListener violationListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"violation");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore pena pari a "+penalty);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		violationItem.addActionListener(violationListener);
-		
-		//Listener per inserire nuovo term
-		ActionListener termListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				/*InsertForm ins=new InsertForm(frame,vec,"term");
-				System.out.println("Valore definiendum pari a "+definiendum);
-				System.out.println("Valore definiens pari a "+definiens);
-				System.out.println("Valore legge pari a "+textLaw);*/
-				String uri="http://provisions.org/model/1.0";
-				String NS=uri + "#";
-				OntClass ont=model.getOntClass(NS+"Term");
-				System.out.println("ont è nullo"+ont.toString());
-				//InsertWindow win=new InsertWindow(frame,model,ont);
-			}
-		};
-		termItem.addActionListener(termListener);
-		
-		//Listener per inserire nuovo procedure
-		ActionListener procedureListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"procedure");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore azione pari a "+actionS);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		procedureItem.addActionListener(procedureListener);
-		
-		//Listener per inserire nuovo establishment
-		ActionListener establishmentListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"establishment");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		establishmentItem.addActionListener(establishmentListener);
-		//Listener per inserire nuovo organization
-		ActionListener organizationListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"organization");
-				//System.out.println("Valore destinatario pari a "+dest);
-				//System.out.println("Valore legge pari a "+textLaw);
-				if(dest!=null){
-					/*Organization org=new Organization(model,dest,textLaw);
-					writeOnScreen();
-					//System.out.println("Classe di tipo"+org.toString());
-					System.out.println(org.getAddr()+"\n"+org.getText());
-					dest=null;
-					textLaw=null;*/
-				}
-			
-			}
-		};
-		
-		organizationItem.addActionListener(organizationListener);
-		
-		
-		//Listener per inserire nuovo power
-		ActionListener powerListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"power");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore attività pari a "+activity);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		powerItem.addActionListener(powerListener);
-		
-		//Listener per aggiungere nuovo liability
-		ActionListener liabilityListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"liability");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore controparte pari a "+counter);
-				System.out.println("Valore attività pari a "+activity);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		liabilityItem.addActionListener(liabilityListener);
-		
-		//Listener per inserire nuovo status
-		ActionListener statusListener=new ActionListener(){
-			public void actionPerformed(ActionEvent e)
-			{
-				InsertForm ins=new InsertForm(frame,vec,"status");
-				System.out.println("Valore destinatario pari a "+dest);
-				System.out.println("Valore oggetto pari a "+object);
-				System.out.println("Valore legge pari a "+textLaw);
-			}
-		};
-		
-		statusItem.addActionListener(statusListener);
-		
 		item2.addActionListener(actionSave); 
-		item3.addActionListener(actionSaveWithName);
+		
+		ActionListener findListener=new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				frame.listProvision();
+				JOptionPane.showMessageDialog(frame,"TODO", "TODO", JOptionPane.WARNING_MESSAGE);
+			}
+		};
+		itemCerca.addActionListener(findListener);
+			
 		//creo la toolbar
 		JToolBar toolbar=new JToolBar("Toolbar");
 		JSeparator toolBarSeparator = new JToolBar.Separator(new Dimension(10,10));
@@ -546,61 +481,19 @@ public class applicationFrame extends JFrame {
 		saveButton.setBorderPainted(true);
 		toolbar.add(saveButton);
 		
-		//creazione del menu inserimento
-		
-				
-		//aggiungo gli item al menù
-		menu.add(item);
-		menu.add(item1);
-		menu.addSeparator();
-		menu.add(item2);
-		menu.add(item3);
-		menu.addSeparator();
-		menu.add(item4);
-		menu1.add(itemA);
-		menu1.add(itemA1);
-		menu1.add(itemA2);
-		menu1.addSeparator();
-		menu1.add(insertMenu);
-		insertMenu.add(regulativeMenu);
-		insertMenu.add(constitutiveMenu);
-		constitutiveMenu.add(definition);
-		constitutiveMenu.add(creation);
-		constitutiveMenu.add(attribution);
-		regulativeMenu.add(action);
-		regulativeMenu.add(remedy);
-		definition.add(termItem);
-		definition.add(procedureItem);
-		creation.add(establishmentItem);
-		creation.add(organizationItem);
-		attribution.add(powerItem);
-		attribution.add(liabilityItem);
-		attribution.add(statusItem);
-		action.add(rightItem);
-		action.add(dutyItem);
-		action.add(prohibitionItem);
-		action.add(permissionItem);
-		remedy.add(redressItem);
-		remedy.add(violationItem);
-		
-		//imposto la menubar ed aggiungo i menu alla menu bar 
 		menubar.add(menu);
 		menubar.add(menu1);
 		frame.setJMenuBar(menubar);
-		JSeparator separator=new JSeparator();
-		//frame.add(separator);
 		frame.add(toolbar,BorderLayout.NORTH);
-		
 	}
 	
-	public void createMainPanel(final applicationFrame frame)
+	private void createMainPanel(final ProvisionFrame frame)
 	{
 		//PER CREARE PIU'ELEMENTI LEGATI "BENE" ASSIEME GUARDA SPRINGLAYOUT O JTABBEDPANE PER FARLI IN TAB DIVERSI
 		//creo l'area di testo principale TODO riguarda ogni cosa
 		Container contentPane=frame.getContentPane();//creo il pannello posto nell'area centrale
 		panel=new JPanel();
 		JScrollPane mainPaneLeft=new JScrollPane(panel);//creo lo scroller contenente la'rea di testo
-		System.out.println ("dimensione "+contentPane.getSize());
 		contentPane.add(mainPaneLeft,BorderLayout.CENTER);
 		panel.setLayout(new FlowLayout(FlowLayout.LEFT));
 		subPanel=new JPanel();
@@ -609,7 +502,6 @@ public class applicationFrame extends JFrame {
 		JScrollPane scroll=new JScrollPane(frame.text);
 		subPanel.add(scroll);
 		panel.add(subPanel);
-		System.out.println("Dimensione subpanel"+subPanel.getSize());
 		document=text.getDocument();//Imposto la variabile di classe document ad essere il document della textarea*/
 		
 		
@@ -620,12 +512,10 @@ public class applicationFrame extends JFrame {
 			public void changedUpdate(DocumentEvent e){
 				init=true; //indico che il documento ha subito una qualsiasi operazione
 				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
-				System.out.println("Cambiamento");
 			}
 			public void insertUpdate(DocumentEvent e){
 				init=true; //indico che il documento ha subito una qualsiasi operazione
 				modified=true; //indico che il lavoro ha subito modifiche dall'ultimo salvataggio
-				System.out.println("Inserimento");
 				return;
 			}
 			public void removeUpdate(DocumentEvent e){
@@ -636,15 +526,21 @@ public class applicationFrame extends JFrame {
 			}
 		}
 		document.addDocumentListener(new DocumentGesture());
+		
+		provisionPanel=new JPanel();
+		provisionPanel.setLayout(new FlowLayout());
 		//creo l'albero dei raggruppamenti TODO gestirlo
-	/*	JTree tree=new JTree();
-		tree.setEditable(true);
-		subPanel1=new JPanel();
-		Border border1=BorderFactory.createLineBorder(Color.black, 2);
-		subPanel.setBorder(border);
-		subPanel1.add(tree);
-		//panel.add(subPanel1);
-		 */
+		//tree=new JTree();
+	//	tree=new JTree(root);
+	//	tree.setEditable(true);
+		//tree.setRootVisible(true);
+		JScrollPane scroller1=new JScrollPane(provisionTree); //SCROLLER CONTENENTE L'ALBERO
+		//scroller1.setSize(20,20);
+		//Border border1=BorderFactory.createLineBorder(Color.black, 2);
+		//subPanel.setBorder(border);
+		provisionPanel.add(scroller1);
+		panel.add(provisionPanel);
+	
 	}
 
 	//TODO CREARE METODI PER CREARE NUOVE DISPOSIZIONI
@@ -684,12 +580,101 @@ public class applicationFrame extends JFrame {
 		return model;
 	}
 	
+	//UTILE PER ELIMINARE DAL NOME DI UN OGGETTO APPARTENENTE ALL'ONTOLOGIA TUTTA LA PARTE PRIMA DEL #
+	private String getProvisionType(OntClass ont){
+		String provisionType=ont.toString();
+		for(int i=provisionType.length()-1;i!=-1;i--)
+			if(provisionType.charAt(i)=='#'){
+				provisionType=provisionType.substring(i+1,provisionType.length());
+				break;
+			}
+		return provisionType;
+	}
+	
 	//scrive su area testo il modello corrente
 	public void writeOnScreen(){
 		ByteArrayOutputStream bout=null;
 		bout=new ByteArrayOutputStream();
      	this.model.write(bout);
      	this.text.setText(new String(bout.toByteArray()));
+	}
+	 //	CREA UNA NUOVA DISPOSIZIONE ASSOCIANDOGLI UN NOME UNIVOCO
+	
+	public Provision createProvision(OntClass ont,String []param){
+		//PENSACI 
+		Provision prov=new Provision(ont);
+		prov.setID(createID(prov.getType())); //CREO IL NOME DELLA DISPOSIZIONE INTERROGANDO IL TIPO DELLA DISPOSIZIONE
+		prov.setText(param[param.length-1]);//IMPOSTO IL TESTO DELLA DISPOSIZIONE
+		addProvision(prov);
+		//subPanel.add(tree);
+		model.createIndividual("http://provisions.org/model/1.0#"+prov.getID(),prov.getOntClass());//CREO UN'ISTANZA NEL MODELLO DI OUTPUT
+		writeOnScreen();
+		//AGGIUNGO LA DISPOSIZIONE ALL'ALBERO (per ora come elemento figlio della radice)
+		DefaultMutableTreeNode node=new DefaultMutableTreeNode(prov.getID());
+		DefaultMutableTreeNode rootNode=(DefaultMutableTreeNode)provisionTree.getModel().getRoot();		
+		//CERCO IL NODO PADRE DELL'ISTANZA DI DISPOSIZIONE CHE VOGLIO INSERIRE
+		Enumeration e=rootNode.children();
+		DefaultMutableTreeNode father=new DefaultMutableTreeNode();
+		while(e.hasMoreElements()){
+			father=(DefaultMutableTreeNode)e.nextElement();
+			String typeOfProvision=(String)father.toString();//getUserObject();
+			if(typeOfProvision.equals(prov.getType())){//HO TROVATO IL NODO PADRE, INSERISCO LA DISPOSIZIONE COME FIGLIO
+				father.add(node);
+				((DefaultTreeModel)provisionTree.getModel()).reload();
+			}
+			
+		}
+		String content=new String("Testo: "+prov.getText());
+		DefaultMutableTreeNode argument=new DefaultMutableTreeNode(content);
+		node.add(argument);
+		((DefaultTreeModel)provisionTree.getModel()).reload();
+		//subPanel.repaint();
+		return prov;
+	}
+	
+	//	CREA UN ID PER UNA NUOVA DISPOSIZIONE
+	private String createID(String type){
+		int subfix;
+		String ID=null;
+		boolean duplicate=true;
+		while(duplicate){
+			subfix=(int)(range*Math.random());
+			ID=type+subfix;
+			System.out.println(ID);
+			duplicate=searchID(ID);
+		}
+		usedID.add(ID);
+		return ID;
+	}
+	//SERVE PER VEDERE SE UN ID E' GIA STATO USATO
+	private boolean searchID(String ID){ 
+		return usedID.contains(ID);
+	}
+	
+	//AGGIUNGE UNA NUOVA DISPOSIZIONE A QUELLE INSERITE NELL'APPLICAZIONE
+	private void addProvision(Provision p){
+		provisions.add(p);
+	}
+	
+	private void deleteProvision(Provision p){
+		String ID=p.getID();
+		Provision temp;
+		for(int i=0;i<=provisions.capacity();i++){
+			temp=provisions.elementAt(i);
+			if(temp.getID().equals(ID)){
+				provisions.remove(i);
+				break;
+			}
+		}
+	}
+	
+	public void listProvision(){// CAMBIA TUTTO, RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI
+		Provision p;
+		while(!provisions.isEmpty()){
+			p=provisions.lastElement();
+			System.out.println( p.getID());
+			provisions.remove(provisions.remove(p));
+		}
 	}
 	//classe per filtrare i file con estensione RDF GIUSTO?
 	static class RDFFileFilter extends FileFilter {
@@ -704,4 +689,5 @@ public class applicationFrame extends JFrame {
 		    return "File RDF";
 		  }
 		}
+
 }
