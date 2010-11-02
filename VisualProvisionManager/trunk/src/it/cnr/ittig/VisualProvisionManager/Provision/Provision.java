@@ -1,5 +1,7 @@
 package it.cnr.ittig.VisualProvisionManager.Provision;
 
+import java.util.Hashtable;
+
 import com.hp.hpl.jena.ontology.*;
 
 public class Provision {
@@ -10,6 +12,7 @@ public class Provision {
 	private String baseURI = new String("http://provisions.org/model/1.0");
 	private String NS= new String(baseURI + "#");
 	private OntModel model;
+	private Hashtable<String, String> arguments=new Hashtable<String, String>();//CONTIENE NOME DEGLI ARGOMENTI E RELATIVI VALORI
 	private String text; //TODO è giusto che sia una String??
 	
 	
@@ -65,6 +68,17 @@ public class Provision {
 		typeClass=this.model.getOntClass(string);
 	}
 	
+	public void createArguments(String name,String value){//CREA UN ARGOMENTO IMPOSTANDONE ANCHE IL VALORE
+		arguments.put(name,value);
+	}
+	
+	public java.util.Enumeration<String> getKeys(){// RITORNA TUTTI I NOMI DEGLI ARGOMENTI DELLA DISPOSIZIONE
+		return arguments.keys();
+	}
+	
+	public String getArgumentValue(String name){//NAME E' IL NOME DELLA CHIAVE (ARGOMENTO) DI CUI INTERESSA IL VALORE
+		return arguments.get(name);
+	}
 	
 	//RITORNA IL TESTO DELLA DISPOSIZIONE
 	public String getText(){

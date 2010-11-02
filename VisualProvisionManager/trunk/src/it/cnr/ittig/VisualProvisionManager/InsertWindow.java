@@ -60,7 +60,7 @@ public class InsertWindow extends JDialog{
 		final JButton button=new JButton("OK");
 		final JButton button1=new JButton("Cancella");
 		int numOfProperties=0;
-		String[] properties=new String[5]; //RIGUARDA LA GRANDEZZA DELL'ARRAY
+		final String[] properties=new String[5]; //RIGUARDA LA GRANDEZZA DELL'ARRAY
 		
 	//	OntModel modelSearch=frame.getModelReasoner();
 		//RECUPERO LE PROPRIETA' SPECIFICHE DELLA CLASSE
@@ -124,12 +124,12 @@ public class InsertWindow extends JDialog{
 				}
 				if (cond&e.getSource()==button) //SE HO CORETTAMENTE INSERITO GLI ARGOMENTI E PREMO OK
 				{
-					String []arguments=new String[num]; //PASSO I VALORI DEGLI ARGOMENTI IN QUESTO ARRAY
+					String []arguments=new String[num+1]; //PASSO I VALORI DEGLI ARGOMENTI IN QUESTO ARRAY
 					for(int i=1;i<=num;i++){
 						arguments[i-1]=fields[i-1].getText();
 					}
-					Provision prov=frame.createProvision(ont,arguments);
-					System.out.println("Creata disposizione di tipo "+prov.getType()+" con testo" +prov.getText());
+					arguments[arguments.length-1]=area.getText();//AGGIUNGO IL VALORE DEL TESTO DELLA DISPOSIZIONE ALL'ARRAY
+					Provision prov=frame.createProvision(ont,properties,arguments);
 				}
 				dispose();
 			}

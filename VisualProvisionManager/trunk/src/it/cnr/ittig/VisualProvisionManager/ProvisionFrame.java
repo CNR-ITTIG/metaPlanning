@@ -11,6 +11,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
+import java.awt.MouseInfo;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -26,6 +27,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Vector;
 
+import javax.swing.JPopupMenu;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -46,9 +48,12 @@ import javax.swing.KeyStroke;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
+import javax.swing.text.Position;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
@@ -211,10 +216,13 @@ public class ProvisionFrame extends JFrame{
 				final OntClass figlio1=figlio;//UTILE PERCHE' IL LISTENER SUCCESSIVO DEVE LAVORARE SU UNA VARIABILE FINAL
 				JMenuItem menuItemFiglio=new JMenuItem(getProvisionType(figlio));
 				//root.add(getProvisionType(figlio1));
+				//INSERISCO IL NODO DEL TIPO DI DISPOSIZIONE NELL'ALBERO
 				DefaultMutableTreeNode child=new DefaultMutableTreeNode(getProvisionType(figlio));
 				menuOnt.add(menuItemFiglio);
 				radice.add(child);// AGGIUNGO IL NODO DELLA DISPOSIZIONI COME FIGLIO DELLA RADICE
 			//	radice.insert(child,radice.getChildCount());
+				//AGGIUNGO UN NODO VUOTO COME FIGLIO DEL TIPO DI DISPOSIZIONE
+				child.add(new DefaultMutableTreeNode("Blank"));
 				menuItemFiglio.addActionListener(new ActionListener(){
 					public void actionPerformed(ActionEvent e){
 						InsertWindow win=new InsertWindow(frame,modelBase,figlio1);
@@ -534,8 +542,9 @@ public class ProvisionFrame extends JFrame{
 	//	tree=new JTree(root);
 	//	tree.setEditable(true);
 		//tree.setRootVisible(true);
+		provisionTree.addTreeSelectionListener(new SelectionListener());
 		JScrollPane scroller1=new JScrollPane(provisionTree); //SCROLLER CONTENENTE L'ALBERO
-		//scroller1.setSize(20,20);
+		scroller1.setSize(provisionPanel.getSize());
 		//Border border1=BorderFactory.createLineBorder(Color.black, 2);
 		//subPanel.setBorder(border);
 		provisionPanel.add(scroller1);
@@ -545,7 +554,7 @@ public class ProvisionFrame extends JFrame{
 
 	//TODO CREARE METODI PER CREARE NUOVE DISPOSIZIONI
 	//METODI PER SETTARE GLI ARGOMENTI
-	protected void setDest(String result){
+	/*protected void setDest(String result){
 		dest=result;
 	}
 	protected void setCounter(String result){
@@ -574,7 +583,7 @@ public class ProvisionFrame extends JFrame{
 	}
 	protected void setActivity(String result){
 		activity=result;
-	}
+	}*/
 	public OntModel getModel()
 	{
 		return model;
@@ -598,12 +607,16 @@ public class ProvisionFrame extends JFrame{
      	this.model.write(bout);
      	this.text.setText(new String(bout.toByteArray()));
 	}
-	 //	CREA UNA NUOVA DISPOSIZIONE ASSOCIANDOGLI UN NOME UNIVOCO
 	
-	public Provision createProvision(OntClass ont,String []param){
+	 //	CREA UNA NUOVA DISPOSIZIONE ASSOCIANDOGLI UN NOME UNIVOCO
+	//ONT TIPO (CLASSE) DI DISPOSIZIONE, PROPERTIES NOME DEGLI ARGOMENTI, PARAM VALORI ARGOMENTI (TESTO COMPRESO)
+	public Provision createProvision(OntClass ont, String []properties,String []param){
 		//PENSACI 
 		Provision prov=new Provision(ont);
 		prov.setID(createID(prov.getType())); //CREO IL NOME DELLA DISPOSIZIONE INTERROGANDO IL TIPO DELLA DISPOSIZIONE
+		for(int i=0;i<=param.length-2;i++){//LENGTH-2 PERCHE' UNO E' IL TESTO CHE LO AGGIUNGO A PARTE, E 1 PERCHE' GLI ELEMENTI SONO LENGTH-1
+			prov.createArguments(properties[i], param[i]);
+		}
 		prov.setText(param[param.length-1]);//IMPOSTO IL TESTO DELLA DISPOSIZIONE
 		addProvision(prov);
 		//subPanel.add(tree);
@@ -613,20 +626,33 @@ public class ProvisionFrame extends JFrame{
 		DefaultMutableTreeNode node=new DefaultMutableTreeNode(prov.getID());
 		DefaultMutableTreeNode rootNode=(DefaultMutableTreeNode)provisionTree.getModel().getRoot();		
 		//CERCO IL NODO PADRE DELL'ISTANZA DI DISPOSIZIONE CHE VOGLIO INSERIRE
-		Enumeration e=rootNode.children();
 		DefaultMutableTreeNode father=new DefaultMutableTreeNode();
+		Enumeration<DefaultMutableTreeNode> e=rootNode.children();
 		while(e.hasMoreElements()){
 			father=(DefaultMutableTreeNode)e.nextElement();
 			String typeOfProvision=(String)father.toString();//getUserObject();
 			if(typeOfProvision.equals(prov.getType())){//HO TROVATO IL NODO PADRE, INSERISCO LA DISPOSIZIONE COME FIGLIO
+				//SE IL NODO PADRE HA COME FIGLIO IL NODO ETICHETTATO COME BLANK, ALLORA LO ELIMINO
+				if(father.getChildCount()==1&father.getChildAt(0).toString().equals("Blank")){
+					father.removeAllChildren();
+				}
 				father.add(node);
-				((DefaultTreeModel)provisionTree.getModel()).reload();
-			}
-			
+				//((DefaultTreeModel)provisionTree.getModel()).reload();
+			}		
 		}
+		//AGGIUNGO AL NODO CREATO I NODI RELATIVI AGLI ARGOMENTI
+		java.util.Enumeration<String> keys=prov.getKeys();
+		String name,value;
+		while(keys.hasMoreElements()){	
+			name=keys.nextElement();
+			value=prov.getArgumentValue(name);
+			node.add(new DefaultMutableTreeNode(name+": "+value));
+		}
+		//AGGIUNGO A PARTE IL TESTO DELLA DISPOSIZIONE
 		String content=new String("Testo: "+prov.getText());
 		DefaultMutableTreeNode argument=new DefaultMutableTreeNode(content);
 		node.add(argument);
+		//AGGIORNO IL DISEGNO DELL'ALBERO
 		((DefaultTreeModel)provisionTree.getModel()).reload();
 		//subPanel.repaint();
 		return prov;
@@ -656,7 +682,8 @@ public class ProvisionFrame extends JFrame{
 		provisions.add(p);
 	}
 	
-	private void deleteProvision(Provision p){
+	public void deleteProvision(Provision p){
+		//TODO CANCELLA DALL'ALBERO
 		String ID=p.getID();
 		Provision temp;
 		for(int i=0;i<=provisions.capacity();i++){
@@ -666,6 +693,20 @@ public class ProvisionFrame extends JFrame{
 				break;
 			}
 		}
+	}
+	public void deleteProvision(String ID){ //ID DELLA DISPOSIZIONE DA ELIMINARE
+		//TODO CANCELLA DALL'ALBERO
+		Provision temp;
+		//LA ELIMINO DAL VETTORE DELLE DISPOSIZIONI
+		for(int i=0;i<=provisions.capacity();i++){
+			temp=provisions.elementAt(i);
+			if(temp.getID().equals(ID)){
+				provisions.remove(i);
+				break;
+			}
+		}
+		//LA ELIMINO DALL'ALBERO
+		
 	}
 	
 	public void listProvision(){// CAMBIA TUTTO, RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI
@@ -689,5 +730,35 @@ public class ProvisionFrame extends JFrame{
 		    return "File RDF";
 		  }
 		}
+	private class SelectionListener implements TreeSelectionListener{
+		javax.swing.JPopupMenu pop;
+		ProvisionFrame app;
+		public void valueChanged(TreeSelectionEvent e,ProvisionFrame frame){
+			app=frame;
+			valueChanged(e);
+		}
+		public void valueChanged(TreeSelectionEvent e){
+			JTree tree=(JTree)e.getSource();
+			DefaultMutableTreeNode selectedNode=(DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+			if(selectedNode!=null){//UTILE PER NON AVERE SITUAZIONE CON NODO NULLO QUANDO SI CREA UNA SECONDA DISPOSIZIONE
+				if(selectedNode.getDepth()==1){//CONTROLLO CHE IL NODO SIA UNO DEI TIPI DI DISPOSIZIONE
+					if(selectedNode.getChildCount()!=1||!selectedNode.getFirstChild().toString().equals("Blank")){//CONTROLLO CHE L'UNICO FIGLIO NON SIA IL NODO BLANK
+						// IN CASO FAVOREVOLE HO UN NODO RELATIVO AD' UN ISTANZA DI UN TIPO DI DISPOSIZIONE
+						new TreeWindow(selectedNode,app);
+					/*pop=new JPopupMenu();
+					JMenuItem delete=new JMenuItem("Cancella");
+					JMenuItem modify=new JMenuItem("Modifica");
+					pop.add(delete);
+					pop.add(modify);
+					provisionPanel.setComponentPopupMenu(pop);
+					
+					pop.show(provisionTree,MouseInfo.getPointerInfo().getLocation().x,MouseInfo.getPointerInfo().getLocation().y);*/
+					//pop.setVisible(true);
+					//((DefaultTreeModel)provisionTree.getModel()).reload();
+					}
+				}
+			}
+		}		
+	}
 
 }
