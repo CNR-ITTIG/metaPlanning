@@ -80,6 +80,10 @@ public class Provision {
 		return arguments.get(name);
 	}
 	
+	public void modifyArguments(String name, String value){
+		arguments.put(name, value);
+	}
+	
 	//RITORNA IL TESTO DELLA DISPOSIZIONE
 	public String getText(){
 		return text;
@@ -98,5 +102,7 @@ public class Provision {
 			}
 		return provisionType;
 	}
-
+	public String toString(){
+		return arguments.toString()+text;
+	}
 }

@@ -80,14 +80,33 @@ public class TreeWindow extends JDialog{
 						return;
 					}
 				}
-				if (cond&e.getSource()==button) //SE HO CORETTAMENTE INSERITO GLI ARGOMENTI E PREMO OK
+				if (cond&e.getSource()==button) //SE HO CORRETTAMENTE INSERITO GLI ARGOMENTI E PREMO OK
 				{
+					
 					System.out.println("Modificare");
 					String []arguments=new String[num+1]; //PASSO I VALORI DEGLI ARGOMENTI IN QUESTO ARRAY
 					for(int i=1;i<=num;i++){
 						arguments[i-1]=fields[i-1].getText();
 					}
 					arguments[arguments.length-1]=area.getText();//AGGIUNGO IL VALORE DEL TESTO DELLA DISPOSIZIONE ALL'ARRAY
+					node.removeAllChildren();
+					String content;
+					DefaultMutableTreeNode child;
+					String propertyName[]=new String[num+1];//ARRAY COL NOME DELLE PROPRIETà, UTILE PER LA LORO MODIFICA
+					for(int i=0;i<num;i++){
+						propertyName[i]=labels[i].getText();
+						content=labels[i].getText()+": "+fields[i].getText();
+						System.out.println(content);
+						child=new DefaultMutableTreeNode(content);
+						node.add(child);
+					}
+					propertyName[propertyName.length-1]=labels[labels.length-1].getText();
+					content=labels[labels.length-1].getText()+": "+area.getText();
+					System.out.println(content);
+					child=new DefaultMutableTreeNode(content);
+					node.add(child);
+					frame.reloadTree();
+					frame.modifyProvision(node.toString(),propertyName,arguments);
 					//Provision prov=frame.createProvision(ont,properties,arguments);
 				}
 				if(e.getSource()==button1){
@@ -125,10 +144,10 @@ public class TreeWindow extends JDialog{
 	private String argumentsValue(String arg){
 		char charAt;
 		String value=arg;
-		for(int i=0;i<=arg.length();i++){
+		for(int i=0;i<=arg.length()-1;i++){
 			charAt=arg.charAt(i);
 			if(charAt==':'){
-				value=arg.substring(i+1,arg.length());
+				value=arg.substring(i+2,arg.length());//AGGIUNGO 2 COSì SALTO IL : E LO SPAZIO BIANCO SUCCESSIVO
 				break;
 			}
 		}

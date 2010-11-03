@@ -135,9 +135,9 @@ public class ProvisionFrame extends JFrame{
 	//CARICA IL MODELLO CONTENUTO NEL PROVISIONMODEL
 	private void loadModel(){
 		model=provisionModelFactory.getProvisionModel();
-		modelBase=ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
+		//modelBase=ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
 		InputStream in = FileManager.get().open("C:/ProvisionModel.rdf");
-		modelBase.read(in, "");
+		//modelBase.read(in, "");
 		modelOutput=ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM,null);
 		//modelOutput.addSubModel(modelBase);
 		//model.addLoadedImport("C:/ProvisionModel.rdf");
@@ -225,7 +225,7 @@ public class ProvisionFrame extends JFrame{
 				child.add(new DefaultMutableTreeNode("Blank"));
 				menuItemFiglio.addActionListener(new ActionListener(){
 					public void actionPerformed(ActionEvent e){
-						InsertWindow win=new InsertWindow(frame,modelBase,figlio1);
+						InsertWindow win=new InsertWindow(frame,model,figlio1); //SE NON TORNA MODELBASE
 					}
 				});
 			}
@@ -291,7 +291,7 @@ public class ProvisionFrame extends JFrame{
 		
 		//PROCEDO CON LA CREAZIONE DEL MENU DI INSERIMENTO DELLE DISPOSIZIONI
 		OntClass ont;
-		ExtendedIterator <OntClass>  iter=OntUtils.getTopClasses(modelBase);//CERCO LA CLASSE DI GERARCHIA PIU' ALTA
+		ExtendedIterator <OntClass>  iter=OntUtils.getTopClasses(model);//CERCO LA CLASSE DI GERARCHIA PIU' ALTA(SE NON TORNA MODELBASE)
 		//rootVector=new Vector<OntClass>(); //CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
 		//root=new Vector();
 		while(iter.hasNext()){
@@ -542,7 +542,7 @@ public class ProvisionFrame extends JFrame{
 	//	tree=new JTree(root);
 	//	tree.setEditable(true);
 		//tree.setRootVisible(true);
-		provisionTree.addTreeSelectionListener(new SelectionListener());
+		provisionTree.addTreeSelectionListener(new SelectionListener(frame));
 		JScrollPane scroller1=new JScrollPane(provisionTree); //SCROLLER CONTENENTE L'ALBERO
 		scroller1.setSize(provisionPanel.getSize());
 		//Border border1=BorderFactory.createLineBorder(Color.black, 2);
@@ -649,8 +649,9 @@ public class ProvisionFrame extends JFrame{
 			node.add(new DefaultMutableTreeNode(name+": "+value));
 		}
 		//AGGIUNGO A PARTE IL TESTO DELLA DISPOSIZIONE
-		String content=new String("Testo: "+prov.getText());
-		DefaultMutableTreeNode argument=new DefaultMutableTreeNode(content);
+	//	String content=new String("Testo: "+prov.getText());
+		//DefaultMutableTreeNode argument=new DefaultMutableTreeNode(content);
+		DefaultMutableTreeNode argument=new DefaultMutableTreeNode("Testo: "+prov.getText());
 		node.add(argument);
 		//AGGIORNO IL DISEGNO DELL'ALBERO
 		((DefaultTreeModel)provisionTree.getModel()).reload();
@@ -658,6 +659,9 @@ public class ProvisionFrame extends JFrame{
 		return prov;
 	}
 	
+	public void reloadTree(){//AGGIORNA L'ALBERO DELL'APPLICAZIONE
+		((DefaultTreeModel)provisionTree.getModel()).reload();
+	}
 	//	CREA UN ID PER UNA NUOVA DISPOSIZIONE
 	private String createID(String type){
 		int subfix;
@@ -697,16 +701,53 @@ public class ProvisionFrame extends JFrame{
 	public void deleteProvision(String ID){ //ID DELLA DISPOSIZIONE DA ELIMINARE
 		//TODO CANCELLA DALL'ALBERO
 		Provision temp;
+		if(provisions.isEmpty()){
+			return;
+		}
 		//LA ELIMINO DAL VETTORE DELLE DISPOSIZIONI
-		for(int i=0;i<=provisions.capacity();i++){
+		for(int i=0;i<=provisions.size();i++){
 			temp=provisions.elementAt(i);
 			if(temp.getID().equals(ID)){
 				provisions.remove(i);
 				break;
 			}
 		}
-		//LA ELIMINO DALL'ALBERO
+		for(int i=0;i<provisions.size();i++){
+			if(provisions.isEmpty()){
+				break;
+			}else{
+				Provision p=provisions.elementAt(i);
+				System.out.println(p.getID());
+			}
+		}
+		//TODO LA ELIMINO DALL'ALBERO
 		
+	}
+	
+	private Provision searchProvision(String ID){
+		Provision temp;
+		if(provisions.isEmpty()){
+			return null;
+		}
+		//LA ELIMINO DAL VETTORE DELLE DISPOSIZIONI
+		for(int i=0;i<=provisions.size();i++){
+			temp=provisions.elementAt(i);
+			if(temp.getID().equals(ID)){
+				return temp;
+			}
+		}
+		return null;
+	}
+	public void modifyProvision(String ID, String[] propertyName,String []propertyValue){
+		Provision prov=searchProvision(ID);
+		if(prov==null){
+			return;
+		}
+		for(int i=0;i<=propertyName.length-2;i++){//LENGTH-2 PERCHE' UNO E' IL TESTO CHE LO AGGIUNGO A PARTE, E 1 PERCHE' GLI ELEMENTI SONO LENGTH-1
+			prov.modifyArguments(propertyName[i], propertyValue[i]);
+		}
+		prov.setText(propertyValue[propertyValue.length-1]);
+		System.out.println(prov.toString());
 	}
 	
 	public void listProvision(){// CAMBIA TUTTO, RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI
@@ -731,12 +772,12 @@ public class ProvisionFrame extends JFrame{
 		  }
 		}
 	private class SelectionListener implements TreeSelectionListener{
-		javax.swing.JPopupMenu pop;
 		ProvisionFrame app;
-		public void valueChanged(TreeSelectionEvent e,ProvisionFrame frame){
-			app=frame;
-			valueChanged(e);
+		
+		public SelectionListener(ProvisionFrame frame){
+			this.app=frame;
 		}
+		
 		public void valueChanged(TreeSelectionEvent e){
 			JTree tree=(JTree)e.getSource();
 			DefaultMutableTreeNode selectedNode=(DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
@@ -744,6 +785,7 @@ public class ProvisionFrame extends JFrame{
 				if(selectedNode.getDepth()==1){//CONTROLLO CHE IL NODO SIA UNO DEI TIPI DI DISPOSIZIONE
 					if(selectedNode.getChildCount()!=1||!selectedNode.getFirstChild().toString().equals("Blank")){//CONTROLLO CHE L'UNICO FIGLIO NON SIA IL NODO BLANK
 						// IN CASO FAVOREVOLE HO UN NODO RELATIVO AD' UN ISTANZA DI UN TIPO DI DISPOSIZIONE
+						//System.out.println("Frame uguale a null "+app==null);
 						new TreeWindow(selectedNode,app);
 					/*pop=new JPopupMenu();
 					JMenuItem delete=new JMenuItem("Cancella");
