@@ -42,6 +42,11 @@ public class ProvisionModelFactory {
 	OntModel ProvisionModel = null;
 	
 	
+	public String getNS()
+	{
+		return NS;
+	}
+	
 	
 	public OntModel getProvisionModel() {
 
