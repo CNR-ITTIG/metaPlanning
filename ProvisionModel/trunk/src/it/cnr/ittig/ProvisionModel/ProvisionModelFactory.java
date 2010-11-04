@@ -9,12 +9,14 @@ import com.hp.hpl.jena.ontology.OntProperty;
 import com.hp.hpl.jena.ontology.UnionClass;
 
 import com.hp.hpl.jena.rdf.model.*;
+import com.hp.hpl.jena.reasoner.ValidityReport;
 //import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import com.hp.hpl.jena.vocabulary.OWL;
 //import com.hp.hpl.jena.vocabulary.RDFS;
 import com.hp.hpl.jena.vocabulary.XSD;
 
 import java.io.*;
+import java.util.Iterator;
 
 /*import javax.swing.JFrame;
 
@@ -425,6 +427,22 @@ public class ProvisionModelFactory {
 	}
 		
 	
+    public static void printIterator(Iterator<?> i, String header) {
+        System.out.println(header);
+        for(int c = 0; c < header.length(); c++)
+            System.out.print("=");
+        System.out.println();
+        
+        if(i.hasNext()) {
+	        while (i.hasNext()) 
+	            System.out.println( i.next() );
+        }       
+        else
+            System.out.println("<EMPTY>");
+        
+        System.out.println();
+    }
+
 	
 	
 	public static void main(String[] args) throws FileNotFoundException {
@@ -446,11 +464,19 @@ public class ProvisionModelFactory {
 	    */
 		ProvisionModel.write(System.out, "RDF/XML-ABBREV");
 		
-		File file = new File("ProvisionModel.rdf");
+		File file = new File("ProvisionModel.owl");
 	    FileOutputStream f = new FileOutputStream(file);
 		
 	    ProvisionModel.write(f, "RDF/XML-ABBREV");
 	    
+	    
+	    ProvisionModelReasoner ProvisionModelR = new ProvisionModelReasoner();
+	    ProvisionModelR.setProvisionModel(ProvisionModel);
+	    OntModel InferredProvisionModel = ProvisionModelR.getInferredProvisionModel();
+		
+        // print validation report
+        ValidityReport report = InferredProvisionModel.validate();
+        printIterator( report.getReports(), "Validation Results" );
 	    
 		/*ProvisionModelViewer ProvisionModelV = new ProvisionModelViewer();
 		ProvisionModelV.setProvisionModel(ProvisionModel);
