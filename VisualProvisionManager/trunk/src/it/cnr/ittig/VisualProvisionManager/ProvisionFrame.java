@@ -11,29 +11,30 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
+import java.awt.GraphicsEnvironment;
+import java.awt.GridLayout;
 import java.awt.MouseInfo;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Vector;
 
-import javax.swing.JPopupMenu;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -41,6 +42,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
@@ -53,10 +55,10 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
-import javax.swing.text.Position;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.ontology.OntDocumentManager;
@@ -69,37 +71,19 @@ public class ProvisionFrame extends JFrame{
 	private JPanel panel;
 	private ProvisionModelFactory provisionModelFactory=new ProvisionModelFactory();
 	private OntModel model; //TOGLIERE? PROBLEMA CON SOTTOCLASSI (USA TRANSITIVITA') E PROPRIETA' DELLE CLASSI(PROPRIETA' CONDIVISE NON RESTITUITE)
-	private OntModel modelBase; //MODEL SENZA REASONER
 	private OntModel modelOutput;	//MODEL DI OUTPUT DOVE VERRANNO SALVATE LE ISTANZE CREATE
 	private String savedPath;//UTILE PER VEDERE SE UN DATO FILE E' GIA' STATO SALVATO ED IN CHE PATH 
 	private Document document=null;
 	private JTextArea text;
-	private JPanel subPanel;
-	private JPanel provisionPanel; //PANNELLO DOVE SI VISUALIZZANO LE DISPOSIZIONI (RIFLETTI SE LASCIAR QUI LA DICHIARAZIONE)
-	private JTree tree; //ALBERO DELLE DISPOSIZIONI
-	private JTree provisionTree;//ALBERO DI PROVA
-	private DefaultMutableTreeNode radice=new DefaultMutableTreeNode("Disposizioni");
-	//private JDesktopPane desktop = new JDesktopPane();
+	private JTree provisionTree;//ALBERO DELLE DISPOSIONI
+	private DefaultMutableTreeNode radice=new DefaultMutableTreeNode("");
 	private boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
 	private boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando
 		//si apre un nuovo documento con il documento iniziale mai modificato
-	private String dest=null;
-	private String counter=null;
-	private String actionS=null;
-	private String object=null;
-	private String textLaw=null;
-	private String effect=null;
-	private String penalty=null;
-	private String definiendum=null;
-	private String definiens=null;
-	private String activity=null;
-	//private String[] vec={"A","B"};
 	private Vector <Provision> provisions=new Vector<Provision>();
 	private int range=551; // INDICA QUANTE DISPOSIZIONI DI OGNI TIPO SONO GESTIBILI DAL PROGRAMMA (range-1)
 	private Vector <String> usedID=new Vector<String>(); //TIENE TRACCIA DEGLI ID USATI PER LE DISPOSIZIONI, MEGLIO COME VECTOR?
 	//private Vector <OntClass> rootVector;//CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
-	private Vector <OntClass> rootVector;//CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
-	//private Vector <String>  root;//CONTIENE TUTTI I TIPI DI DISPOSIZIONI DEL MODELLO
 	
 	
 	public static void main(String[] args){
@@ -122,6 +106,9 @@ public class ProvisionFrame extends JFrame{
 		bout=new ByteArrayOutputStream();
      	frame.model.write(bout);
      	frame.text.setText(new String(bout.toByteArray()));
+     /*	GraphicsEnvironment graphicsEnvironment=GraphicsEnvironment.getLocalGraphicsEnvironment(); NON FA, DOVREBBE SERVIRE PER TOGLIERE 
+		Rectangle maximumWindowBounds=graphicsEnvironment.getMaximumWindowBounds(); DALLE DIMENSIONI MASSIME LA TOOLBAR DI WINDOWS
+		frame.setMaximizedBounds(maximumWindowBounds);*/
 		frame.initializeDimension();
 		frame.createMenu(frame);
 		frame.createMainPanel(frame);
@@ -168,8 +155,13 @@ public class ProvisionFrame extends JFrame{
 		Dimension screen=toolkit.getScreenSize();
 		int larghezza=(int) screen.getWidth()/2;
 		int altezza=(int) screen.getHeight()/2;
-		setSize(larghezza,altezza);
-		setLocation(larghezza/2,altezza/2);
+		Dimension halfMainPanelDimension=new Dimension(larghezza-30,altezza*2);
+		setSize(larghezza*2,altezza*2-30);// TOLGO 30 PER LA TOOLBAR (FATTO IN MANIERA ARBITRARIA,CERCA DI CAMBIARLA)
+		//setPreferredSize(preferredDimension);
+		//setLocation(larghezza/2,altezza/2);
+		setLocation(0,0);
+		provisionTree.setPreferredSize(halfMainPanelDimension);
+		//text.setPreferredSize(halfMainPanelDimension);
 	}
 	
 	//CREA IL MENU DI INSERIMENTO DELLE DISPOSIZIONI LEGGENDO DALL'ONTMODEL SENZA REASONER
@@ -210,17 +202,14 @@ public class ProvisionFrame extends JFrame{
 			if(figlio.hasSubClass()){
 				JMenu menuFiglio=new JMenu(getProvisionType(figlio));
 				menuOnt.add(menuFiglio);
-				//root.add(figlio);
 				insertMenu(frame,figlio,menuFiglio);				
 			}else{
 				final OntClass figlio1=figlio;//UTILE PERCHE' IL LISTENER SUCCESSIVO DEVE LAVORARE SU UNA VARIABILE FINAL
 				JMenuItem menuItemFiglio=new JMenuItem(getProvisionType(figlio));
-				//root.add(getProvisionType(figlio1));
 				//INSERISCO IL NODO DEL TIPO DI DISPOSIZIONE NELL'ALBERO
 				DefaultMutableTreeNode child=new DefaultMutableTreeNode(getProvisionType(figlio));
 				menuOnt.add(menuItemFiglio);
-				radice.add(child);// AGGIUNGO IL NODO DELLA DISPOSIZIONI COME FIGLIO DELLA RADICE
-			//	radice.insert(child,radice.getChildCount());
+				radice.add(child);// AGGIUNGO IL NODO DELLA DISPOSIZIONE COME FIGLIO DELLA RADICE
 				//AGGIUNGO UN NODO VUOTO COME FIGLIO DEL TIPO DI DISPOSIZIONE
 				child.add(new DefaultMutableTreeNode("Blank"));
 				menuItemFiglio.addActionListener(new ActionListener(){
@@ -250,11 +239,9 @@ public class ProvisionFrame extends JFrame{
 		KeyStroke ctrlEKeyStroke = KeyStroke.getKeyStroke("control E");
 		item4.setAccelerator(ctrlEKeyStroke);
 		Action actions[] = text.getActions();
-		Action cutAction =FrameUtil.findAction(actions, DefaultEditorKit.cutAction);
-		Action copyAction =
-		FrameUtil.findAction(actions, DefaultEditorKit.copyAction);
-		Action pasteAction =
-		FrameUtil.findAction(actions, DefaultEditorKit.pasteAction);
+		Action cutAction = FrameUtil.findAction(actions, DefaultEditorKit.cutAction);
+		Action copyAction = FrameUtil.findAction(actions, DefaultEditorKit.copyAction);
+		Action pasteAction = FrameUtil.findAction(actions, DefaultEditorKit.pasteAction);
 		JMenuItem itemA=new JMenuItem(copyAction);
 		KeyStroke ctrlCKeyStroke = KeyStroke.getKeyStroke("control C");
 		itemA.setAccelerator(ctrlCKeyStroke);
@@ -291,9 +278,7 @@ public class ProvisionFrame extends JFrame{
 		
 		//PROCEDO CON LA CREAZIONE DEL MENU DI INSERIMENTO DELLE DISPOSIZIONI
 		OntClass ont;
-		ExtendedIterator <OntClass>  iter=OntUtils.getTopClasses(model);//CERCO LA CLASSE DI GERARCHIA PIU' ALTA(SE NON TORNA MODELBASE)
-		//rootVector=new Vector<OntClass>(); //CONTIENE LE RADICI DELL'ALBERO DELLE DISPOSIZIONI
-		//root=new Vector();
+		ExtendedIterator <OntClass>  iter=OntUtils.getTopClasses(model);//CERCO LA CLASSE DI GERARCHIA PIU' ALTA(FUNZIONA SE NE ESISTE SOLO 1 INSERIMENTO NELL'ALBERO)
 		while(iter.hasNext()){
 			ont=iter.next();
 			if(ont.isUnionClass()){
@@ -311,6 +296,8 @@ public class ProvisionFrame extends JFrame{
 					//rootVector.add(ont);
 					//DefaultMutableTreeNode root=new DefaultMutableTreeNode(ont);
 					JMenu menuRoot=new JMenu(getProvisionType(ont));
+					radice.setUserObject(getProvisionType(ont));
+					reloadTree();
 					insertMenu.add(menuRoot);
 					insertMenu(frame,ont,menuRoot);
 				}
@@ -321,6 +308,7 @@ public class ProvisionFrame extends JFrame{
 			}
 		//LISTENER PER LA CHIUSURA DELL'"FORZATA" DELL'APPLICAZIONE (TRAMITE X ALTO A DX O TRAMITE SISTEMA) 
 		addWindowListener(new WindowAdapter() {
+			
             public void windowClosing(WindowEvent we) {
             	int conferma = JOptionPane.showConfirmDialog(frame,"Sei sicuro di voler uscire?","Termina l'applicazione",JOptionPane.YES_NO_OPTION);
 				if(conferma==0){
@@ -488,6 +476,30 @@ public class ProvisionFrame extends JFrame{
 		saveButton.setToolTipText("Salva");
 		saveButton.setBorderPainted(true);
 		toolbar.add(saveButton);
+		ImageIcon imgCopy=new ImageIcon("img/copy.png");
+		JButton copyButton=new JButton(imgCopy);
+		copyButton.addActionListener(copyAction);
+		copyButton.setToolTipText("Copia");
+		copyButton.setBorderPainted(true);
+		toolbar.add(copyButton);
+		ImageIcon imgCut=new ImageIcon("img/cut.png");
+		JButton cutButton=new JButton(imgCut);
+		cutButton.addActionListener(cutAction);
+		cutButton.setToolTipText("Taglia");
+		cutButton.setBorderPainted(true);
+		toolbar.add(cutButton);
+		ImageIcon imgPaste=new ImageIcon("img/paste.png");
+		JButton pasteButton=new JButton(imgPaste);
+		pasteButton.addActionListener(pasteAction);
+		pasteButton.setToolTipText("Incolla");
+		pasteButton.setBorderPainted(true);
+		toolbar.add(pasteButton);
+		ImageIcon imgFind=new ImageIcon("img/find.png");
+		JButton findButton=new JButton(imgFind);
+		findButton.addActionListener(findListener);
+		findButton.setToolTipText("Cerca Disposizioni");
+		findButton.setBorderPainted(true);
+		toolbar.add(findButton);
 		
 		menubar.add(menu);
 		menubar.add(menu1);
@@ -500,20 +512,37 @@ public class ProvisionFrame extends JFrame{
 		//PER CREARE PIU'ELEMENTI LEGATI "BENE" ASSIEME GUARDA SPRINGLAYOUT O JTABBEDPANE PER FARLI IN TAB DIVERSI
 		//creo l'area di testo principale TODO riguarda ogni cosa
 		Container contentPane=frame.getContentPane();//creo il pannello posto nell'area centrale
-		panel=new JPanel();
-		JScrollPane mainPaneLeft=new JScrollPane(panel);//creo lo scroller contenente la'rea di testo
-		contentPane.add(mainPaneLeft,BorderLayout.CENTER);
-		panel.setLayout(new FlowLayout(FlowLayout.LEFT));
-		subPanel=new JPanel();
-		Border border=BorderFactory.createEmptyBorder();
-		subPanel.setBorder(border);
-		JScrollPane scroll=new JScrollPane(frame.text);
-		subPanel.add(scroll);
-		panel.add(subPanel);
-		document=text.getDocument();//Imposto la variabile di classe document ad essere il document della textarea*/
+		panel=new JPanel();//PARTE SX DEL PANNELLO
+		panel.setLayout(new GridLayout(1,1));
+		//panel.setLayout(new FlowLayout());
+		JPanel panel1=new JPanel();//PARTE DX DEL PANNELLO
+		panel1.setLayout(new GridLayout(1,1));
+		//panel1.setLayout(new FlowLayout());
+	//	JPanel subPanel=new JPanel();
+		//subPanel.setLayout(new FlowLayout());
+		JScrollPane textScroller=new JScrollPane(frame.text);//SCROLLER CONTENENTE AREA DI TESTO
+		//subPanel.add(textScroller);
+		panel.add(textScroller);
+		//JScrollPane scrollerLeft=new JScrollPane(subPanel);//SCROLLER DELLA PARTE SX DEL PANNELLO PRINCIPALE
+		//JScrollPane scroller=new JScrollPane(frame.text);
+		document=text.getDocument();//AGGIUNGO LO SCROLLER DELL'AREA DI TESTO ALLA PARTE SX
+	//	panel.add(scrollerLeft);//AGGIUNGO LO SCROLLER DELL'AREA DI TESTO ALLA PARTE SX
+		JScrollPane treeScroller=new JScrollPane(provisionTree);//SCROLLER CON L'ALBERO DELLE DISPOSIZIONI
+		//JPanel subPanel1=new JPanel();
+		//subPanel1.setLayout(new FlowLayout());
+		//subPanel1.add(treeScroller);
+		panel1.add(treeScroller);//AGGIUNGO LO SCROLLER DELL'ALBERO ALLA PARTE DX
+		//panel1.add(subPanel1);//AGGIUNGO LO SCROLLER DELL'ALBERO ALLA PARTE DX
+		JScrollPane scrollerRight=new JScrollPane(panel1);
+		provisionTree.addTreeSelectionListener(new SelectionListener(frame));
+		//provisionTree.addMouseListener(new TreeMouseListener(frame));
+		JSplitPane split=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel,panel1);
+		int location=frame.getLocation().x+frame.getSize().width/2;
+		split.setDividerLocation(location);
+		contentPane.add(split);
 		
 		
-		
+
 		//creo il gestore del document ,utile per vedere quando viene modificata l'area di testo principale
 		
 		class DocumentGesture implements DocumentListener{
@@ -535,55 +564,8 @@ public class ProvisionFrame extends JFrame{
 		}
 		document.addDocumentListener(new DocumentGesture());
 		
-		provisionPanel=new JPanel();
-		provisionPanel.setLayout(new FlowLayout());
-		//creo l'albero dei raggruppamenti TODO gestirlo
-		//tree=new JTree();
-	//	tree=new JTree(root);
-	//	tree.setEditable(true);
-		//tree.setRootVisible(true);
-		provisionTree.addTreeSelectionListener(new SelectionListener(frame));
-		JScrollPane scroller1=new JScrollPane(provisionTree); //SCROLLER CONTENENTE L'ALBERO
-		scroller1.setSize(provisionPanel.getSize());
-		//Border border1=BorderFactory.createLineBorder(Color.black, 2);
-		//subPanel.setBorder(border);
-		provisionPanel.add(scroller1);
-		panel.add(provisionPanel);
-	
 	}
 
-	//TODO CREARE METODI PER CREARE NUOVE DISPOSIZIONI
-	//METODI PER SETTARE GLI ARGOMENTI
-	/*protected void setDest(String result){
-		dest=result;
-	}
-	protected void setCounter(String result){
-		counter=result;
-	}
-	protected void setAction(String result){
-		actionS=result;
-	}
-	protected void setObject(String result){
-		object=result;
-	}
-	protected void setTextLaw(String result){
-		textLaw=result;
-	}
-	protected void setEffect(String result){
-		effect=result;
-	}
-	protected void setPenalty(String result){
-		penalty=result;
-	}
-	protected void setDefiniendum(String result){
-		definiendum=result;
-	}
-	protected void setDefiniens(String result){
-		definiens=result;
-	}
-	protected void setActivity(String result){
-		activity=result;
-	}*/
 	public OntModel getModel()
 	{
 		return model;
@@ -654,14 +636,29 @@ public class ProvisionFrame extends JFrame{
 		DefaultMutableTreeNode argument=new DefaultMutableTreeNode("Testo: "+prov.getText());
 		node.add(argument);
 		//AGGIORNO IL DISEGNO DELL'ALBERO
-		((DefaultTreeModel)provisionTree.getModel()).reload();
+		//((DefaultTreeModel)provisionTree.getModel()).reload();
+		reloadTree();
 		//subPanel.repaint();
 		return prov;
 	}
 	
 	public void reloadTree(){//AGGIORNA L'ALBERO DELL'APPLICAZIONE
+		int[] expandedRow=new int[ radice.getChildCount()];
+		for(int i=0;i<radice.getChildCount();i++){
+			if(!provisionTree.isCollapsed(i)){//1 LA RIGA è ESPANSA
+				expandedRow[i]=1;
+			}else{
+				expandedRow[i]=0;//LA RIGA E' COLLASSATA
+			}
+		}
 		((DefaultTreeModel)provisionTree.getModel()).reload();
+		for(int i=0;i<expandedRow.length;i++){
+			if(expandedRow[i]==1){//OGNI RIGA PRECEDENTEMENTE ESPANSA, VIENE NUOVAMENTE ESPANSA
+				provisionTree.expandRow(i);	
+			}
+		}
 	}
+	
 	//	CREA UN ID PER UNA NUOVA DISPOSIZIONE
 	private String createID(String type){
 		int subfix;
@@ -670,7 +667,6 @@ public class ProvisionFrame extends JFrame{
 		while(duplicate){
 			subfix=(int)(range*Math.random());
 			ID=type+subfix;
-			System.out.println(ID);
 			duplicate=searchID(ID);
 		}
 		usedID.add(ID);
@@ -686,20 +682,8 @@ public class ProvisionFrame extends JFrame{
 		provisions.add(p);
 	}
 	
-	public void deleteProvision(Provision p){
-		//TODO CANCELLA DALL'ALBERO
-		String ID=p.getID();
-		Provision temp;
-		for(int i=0;i<=provisions.capacity();i++){
-			temp=provisions.elementAt(i);
-			if(temp.getID().equals(ID)){
-				provisions.remove(i);
-				break;
-			}
-		}
-	}
 	public void deleteProvision(String ID){ //ID DELLA DISPOSIZIONE DA ELIMINARE
-		//TODO CANCELLA DALL'ALBERO
+		//LA CANCELLO DALL'ALBERO IN TREEWINDOW
 		Provision temp;
 		if(provisions.isEmpty()){
 			return;
@@ -720,8 +704,6 @@ public class ProvisionFrame extends JFrame{
 				System.out.println(p.getID());
 			}
 		}
-		//TODO LA ELIMINO DALL'ALBERO
-		
 	}
 	
 	private Provision searchProvision(String ID){
@@ -729,7 +711,7 @@ public class ProvisionFrame extends JFrame{
 		if(provisions.isEmpty()){
 			return null;
 		}
-		//LA ELIMINO DAL VETTORE DELLE DISPOSIZIONI
+		//LA CERCO NEL VETTORE DELLE DISPOSIZIONI
 		for(int i=0;i<=provisions.size();i++){
 			temp=provisions.elementAt(i);
 			if(temp.getID().equals(ID)){
@@ -739,18 +721,19 @@ public class ProvisionFrame extends JFrame{
 		return null;
 	}
 	public void modifyProvision(String ID, String[] propertyName,String []propertyValue){
+		//LA MODIFICO NELL'ALBERO IN TREEWINDOW
 		Provision prov=searchProvision(ID);
-		if(prov==null){
+		if(prov==null){//NON DOVREBBE ESSER MAI VERO, SIGNIFICA CHE LA DISPOSIZIONE NON ESISTE
 			return;
 		}
 		for(int i=0;i<=propertyName.length-2;i++){//LENGTH-2 PERCHE' UNO E' IL TESTO CHE LO AGGIUNGO A PARTE, E 1 PERCHE' GLI ELEMENTI SONO LENGTH-1
 			prov.modifyArguments(propertyName[i], propertyValue[i]);
 		}
 		prov.setText(propertyValue[propertyValue.length-1]);
-		System.out.println(prov.toString());
+		System.out.println(prov.toString());//CONTROLLO VISIVO CHE TUTTO è OK
 	}
 	
-	public void listProvision(){// CAMBIA TUTTO, RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI
+	public void listProvision(){//  RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI, MI SERVE SOLO PER DEBUG
 		Provision p;
 		while(!provisions.isEmpty()){
 			p=provisions.lastElement();
@@ -785,22 +768,33 @@ public class ProvisionFrame extends JFrame{
 				if(selectedNode.getDepth()==1){//CONTROLLO CHE IL NODO SIA UNO DEI TIPI DI DISPOSIZIONE
 					if(selectedNode.getChildCount()!=1||!selectedNode.getFirstChild().toString().equals("Blank")){//CONTROLLO CHE L'UNICO FIGLIO NON SIA IL NODO BLANK
 						// IN CASO FAVOREVOLE HO UN NODO RELATIVO AD' UN ISTANZA DI UN TIPO DI DISPOSIZIONE
-						//System.out.println("Frame uguale a null "+app==null);
 						new TreeWindow(selectedNode,app);
-					/*pop=new JPopupMenu();
-					JMenuItem delete=new JMenuItem("Cancella");
-					JMenuItem modify=new JMenuItem("Modifica");
-					pop.add(delete);
-					pop.add(modify);
-					provisionPanel.setComponentPopupMenu(pop);
-					
-					pop.show(provisionTree,MouseInfo.getPointerInfo().getLocation().x,MouseInfo.getPointerInfo().getLocation().y);*/
-					//pop.setVisible(true);
-					//((DefaultTreeModel)provisionTree.getModel()).reload();
 					}
 				}
 			}
 		}		
 	}
-
+	//SE SI USA QUESTO AL POSTO DEL TREE SELECTIONLISTENER FUNZIONA MEGLIO SELEZIONANDO 2 VOLTE LO STESSO NODO MA 
+	//SE SI VUOLE ESPANDERE O COLLASSARE I FIGLI DEL NODO APPARE LO STESSO LA FINESTRELLA DI MODIFICA
+	/*private class TreeMouseListener extends MouseAdapter{
+		//import javax.swing.JTree;
+		ProvisionFrame app;
+		TreeMouseListener(ProvisionFrame frame){
+			app=frame;
+		}
+		public void mousePressed(MouseEvent e){
+			JTree tree=(JTree)e.getSource();
+			DefaultMutableTreeNode selectedNode=(DefaultMutableTreeNode)tree.getLastSelectedPathComponent();
+			if(selectedNode==null){
+				return;
+			}
+			if(selectedNode.getDepth()==1){//CONTROLLO CHE IL NODO SIA UNO DEI TIPI DI DISPOSIZIONE
+				if(selectedNode.getChildCount()!=1||!selectedNode.getFirstChild().toString().equals("Blank")){//CONTROLLO CHE L'UNICO FIGLIO NON SIA IL NODO BLANK
+					// IN CASO FAVOREVOLE HO UN NODO RELATIVO AD' UN ISTANZA DI UN TIPO DI DISPOSIZIONE
+					//System.out.println("Frame uguale a null "+app==null);
+					new TreeWindow(selectedNode,app);
+				}
+			}
+		}
+	};*/
 }
