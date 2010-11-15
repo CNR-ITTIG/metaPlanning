@@ -50,14 +50,17 @@ import javax.swing.KeyStroke;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.event.TreeWillExpandListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
 
 import com.hp.hpl.jena.ontology.OntClass;
@@ -76,6 +79,7 @@ public class ProvisionFrame extends JFrame{
 	private Document document=null;
 	private JTextArea text;
 	private JTree provisionTree;//ALBERO DELLE DISPOSIONI
+	private Vector <TreePath> nodeExpanded=new Vector<TreePath>(); //CONTIENE TUTTI I NODI ESPANSI
 	private DefaultMutableTreeNode radice=new DefaultMutableTreeNode("");
 	private boolean modified=false; //indica se il lavoro ha subito modifiche dall'ultimo salvataggio
 	private boolean init=false; //indica se il documento ha subito una qualsiasi operazione o se non è mai stato usato. Utile per quando
@@ -535,6 +539,7 @@ public class ProvisionFrame extends JFrame{
 		//panel1.add(subPanel1);//AGGIUNGO LO SCROLLER DELL'ALBERO ALLA PARTE DX
 		JScrollPane scrollerRight=new JScrollPane(panel1);
 		provisionTree.addTreeSelectionListener(new SelectionListener(frame));
+		provisionTree.addTreeWillExpandListener(new TreeExpandListener());
 		//provisionTree.addMouseListener(new TreeMouseListener(frame));
 		JSplitPane split=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel,panel1);
 		int location=frame.getLocation().x+frame.getSize().width/2;
@@ -637,15 +642,17 @@ public class ProvisionFrame extends JFrame{
 		node.add(argument);
 		//AGGIORNO IL DISEGNO DELL'ALBERO
 		//((DefaultTreeModel)provisionTree.getModel()).reload();
-		reloadTree();
+		reloadTreeAfter();
 		//subPanel.repaint();
 		return prov;
 	}
 	
 	public void reloadTree(){//AGGIORNA L'ALBERO DELL'APPLICAZIONE
 		int[] expandedRow=new int[ radice.getChildCount()];
+		System.out.println("Nodi	"+radice.getChildCount());
 		for(int i=0;i<radice.getChildCount();i++){
 			if(!provisionTree.isCollapsed(i)){//1 LA RIGA è ESPANSA
+				System.out.println("Riga"+i);
 				expandedRow[i]=1;
 			}else{
 				expandedRow[i]=0;//LA RIGA E' COLLASSATA
@@ -654,11 +661,24 @@ public class ProvisionFrame extends JFrame{
 		((DefaultTreeModel)provisionTree.getModel()).reload();
 		for(int i=0;i<expandedRow.length;i++){
 			if(expandedRow[i]==1){//OGNI RIGA PRECEDENTEMENTE ESPANSA, VIENE NUOVAMENTE ESPANSA
+				System.out.println("Riga che espando"+i);
 				provisionTree.expandRow(i);	
 			}
 		}
 	}
 	
+	public void reloadTreeAfter(){
+		((DefaultTreeModel)provisionTree.getModel()).reload();
+		for(int i=0;i<nodeExpanded.size();i++){
+			provisionTree.expandPath(nodeExpanded.get(i));
+		}
+	/*	DefaultMutableTreeNode root=(DefaultMutableTreeNode)provisionTree.getModel().getRoot();
+		for(int i=0;i<=root.getChildCount();i++){
+			if(nodeExpanded.contains(root.getChildAt(i))){
+				provisionTree.expandPath(new TreePath)
+			}
+		}*/
+	}	
 	//	CREA UN ID PER UNA NUOVA DISPOSIZIONE
 	private String createID(String type){
 		int subfix;
@@ -682,8 +702,7 @@ public class ProvisionFrame extends JFrame{
 		provisions.add(p);
 	}
 	
-	public void deleteProvision(String ID){ //ID DELLA DISPOSIZIONE DA ELIMINARE
-		//LA CANCELLO DALL'ALBERO IN TREEWINDOW
+	public void deleteProvision(String ID, DefaultMutableTreeNode node){ //ID DELLA DISPOSIZIONE DA ELIMINARE, NODE NODO DA TOGLIERE NELL'ALBERO
 		Provision temp;
 		if(provisions.isEmpty()){
 			return;
@@ -692,19 +711,46 @@ public class ProvisionFrame extends JFrame{
 		for(int i=0;i<=provisions.size();i++){
 			temp=provisions.elementAt(i);
 			if(temp.getID().equals(ID)){
-				provisions.remove(i);
+				System.out.println("Elimino la"+provisions.remove(i).toString());
 				break;
 			}
 		}
-		for(int i=0;i<provisions.size();i++){
-			if(provisions.isEmpty()){
+		//	CONTROLLO QUELLE CHE CI SON RIMASTE (INUTILE LE STAMPO PER VEDERE CHE TORNI TUTTO)
+		for(int i=1;i<=provisions.size();i++){
+			if(provisions.isEmpty()){//DOVREBBE ESSERE INUTILE
 				break;
 			}else{
-				Provision p=provisions.elementAt(i);
+				Provision p=provisions.elementAt(i-1);
 				System.out.println(p.getID());
 			}
+		}//SE IL PADRE NON HA FIGLI AGGIUNGO IL NODO BLANK
+		DefaultMutableTreeNode father=(DefaultMutableTreeNode)node.getParent();
+		if(father!=null){//	DOVREBBE ESSERE SUPERFLUO QUESTO CONTROLLO
+			father.remove(node);
+			if(father.getChildCount()==0){//SE IL PADRE NON HA PIU' FIGLI, RIAGGIUNGO IL NODO BLANK
+				father.add(new DefaultMutableTreeNode("Blank"));
+			}
 		}
-	}
+		else{//NON DOVREBBE MAI ESSERE ESEGUITO (CANCELLO LA RADICE DELL'ALBERO, MA LA RADICE NON PUO' ESSERE UN'ISTANZA DI DISPOSIZIONE)
+			JOptionPane.showMessageDialog(this,"Errore nell'applicazione", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+			System.exit(0);
+		}
+		//LA ELIMINO DAL VETTORE DEI NODI ESPANSI
+		TreePath path = provisionTree.getNextMatch(ID, 0, javax.swing.text.Position.Bias.Forward);
+		System.out.println(path.toString());
+		nodeExpanded.remove(path);
+		TreePath fatherPath=path.getParentPath();
+		// father=(DefaultMutableTreeNode)fatherPath.getLastPathComponent();
+		nodeExpanded.remove(fatherPath);
+		reloadTreeAfter();
+		if(!father.getChildAt(0).toString().equals("Blank")){
+			Object [] nodes=fatherPath.getPath();
+			TreePath path2=new TreePath(nodes);
+			nodeExpanded.add(path2);
+			reloadTreeAfter();
+		}
+		
+		}
 	
 	private Provision searchProvision(String ID){
 		Provision temp;
@@ -720,7 +766,9 @@ public class ProvisionFrame extends JFrame{
 		}
 		return null;
 	}
-	public void modifyProvision(String ID, String[] propertyName,String []propertyValue){
+	
+	//ID DELLA DISP. DA MODIFICARE, PROPERYVALUE I VLORI,PROPERTYNAME NOMI DELLE PROPRIETà, NODE IL NODO DA MODIFICARE NELL'ALBERO
+	public void modifyProvision(String ID, String[] propertyName,String []propertyValue,DefaultMutableTreeNode node){
 		//LA MODIFICO NELL'ALBERO IN TREEWINDOW
 		Provision prov=searchProvision(ID);
 		if(prov==null){//NON DOVREBBE ESSER MAI VERO, SIGNIFICA CHE LA DISPOSIZIONE NON ESISTE
@@ -731,6 +779,17 @@ public class ProvisionFrame extends JFrame{
 		}
 		prov.setText(propertyValue[propertyValue.length-1]);
 		System.out.println(prov.toString());//CONTROLLO VISIVO CHE TUTTO è OK
+		//reloadTreeAfterModification(node);
+		int properties=node.getChildCount();
+		node.removeAllChildren();
+		DefaultMutableTreeNode child;
+		String content=null;
+		for(int i=0;i<properties;i++){
+			content=propertyName[i]+": "+propertyValue[i];
+			child=new DefaultMutableTreeNode(content);
+			node.add(child);
+		}
+		reloadTreeAfter();
 	}
 	
 	public void listProvision(){//  RIMUOVE GLI ELEMENTI SEMPLICEMENTE PER STAMPARLI, MI SERVE SOLO PER DEBUG
@@ -773,6 +832,39 @@ public class ProvisionFrame extends JFrame{
 				}
 			}
 		}		
+	}
+	
+	public class TreeExpandListener implements TreeWillExpandListener{
+		@Override
+		public void treeWillCollapse(TreeExpansionEvent e)
+				throws ExpandVetoException {
+			nodeExpanded.remove(e.getPath());
+			System.out.println("Path tolto"+e.getPath());
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void treeWillExpand(TreeExpansionEvent e)
+				throws ExpandVetoException {
+			if(!pathPresente(e.getPath().toString())){
+				nodeExpanded.add(e.getPath());	
+				System.out.println("Path aggiunto"+e.getPath());
+			}			
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
+	private boolean pathPresente(String path){
+		boolean presente=false;
+		for(int i=1;i<=nodeExpanded.size();i++){
+			if(nodeExpanded.get(i-1).toString().equals(path)){
+				presente=true;
+			}
+		}
+		return presente;
 	}
 	//SE SI USA QUESTO AL POSTO DEL TREE SELECTIONLISTENER FUNZIONA MEGLIO SELEZIONANDO 2 VOLTE LO STESSO NODO MA 
 	//SE SI VUOLE ESPANDERE O COLLASSARE I FIGLI DEL NODO APPARE LO STESSO LA FINESTRELLA DI MODIFICA

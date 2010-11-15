@@ -89,29 +89,40 @@ public class TreeWindow extends JDialog{
 						arguments[i-1]=fields[i-1].getText();
 					}
 					arguments[arguments.length-1]=area.getText();//AGGIUNGO IL VALORE DEL TESTO DELLA DISPOSIZIONE ALL'ARRAY
-					node.removeAllChildren();
+					//node.removeAllChildren();
 					String content;
-					DefaultMutableTreeNode child;
+					//DefaultMutableTreeNode child;
 					String propertyName[]=new String[num+1];//ARRAY COL NOME DELLE PROPRIETà, UTILE PER LA LORO MODIFICA
 					for(int i=0;i<num;i++){
 						propertyName[i]=labels[i].getText();
 						content=labels[i].getText()+": "+fields[i].getText();
 						System.out.println(content);
-						child=new DefaultMutableTreeNode(content);
-						node.add(child);
+						//child=new DefaultMutableTreeNode(content);
+						//node.add(child);
 					}
 					propertyName[propertyName.length-1]=labels[labels.length-1].getText();
 					content=labels[labels.length-1].getText()+": "+area.getText();
 					System.out.println(content);
-					child=new DefaultMutableTreeNode(content);
-					node.add(child);
-					frame.reloadTree();
-					frame.modifyProvision(node.toString(),propertyName,arguments);
+					//child=new DefaultMutableTreeNode(content);
+				//	node.add(child);
+				//	frame.reloadTreeAfter();
+					frame.modifyProvision(node.toString(),propertyName,arguments,node);
 					//Provision prov=frame.createProvision(ont,properties,arguments);
 				}
 				if(e.getSource()==button1){
-					System.out.println("Cancellazione");
-					frame.deleteProvision(node.toString());
+					frame.deleteProvision(node.toString(),node);
+					/*DefaultMutableTreeNode father=(DefaultMutableTreeNode)node.getParent();
+					if(father!=null){//	DOVREBBE ESSERE SUPERFLUO QUESTO CONTROLLO
+						father.remove(node);
+						if(father.getChildCount()==0){//SE IL PADRE NON HA PIU' FIGLI, RIAGGIUNGO IL NODO BLANK
+							father.add(new DefaultMutableTreeNode("Blank"));
+						}
+					}
+					else{//NON DOVREBBE MAI ESSERE ESEGUITO (CANCELLO LA RADICE DELL'ALBERO, MA LA RADICE NON PUO' ESSERE UN'ISTANZA DI DISPOSIZIONE)
+						JOptionPane.showMessageDialog(frame,"Errore nell'applicazione", "Errore nell'inserimento",JOptionPane.ERROR_MESSAGE);
+						System.exit(0);
+					}*/
+					//frame.reloadTreeAfter();
 				}
 				dispose();
 			}
