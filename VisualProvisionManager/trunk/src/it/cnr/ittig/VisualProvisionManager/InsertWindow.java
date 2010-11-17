@@ -5,6 +5,7 @@ import it.cnr.ittig.VisualProvisionManager.Provision.Provision;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -47,7 +48,8 @@ public class InsertWindow extends JDialog{
 		}
 		setTitle("Inserimento nuovo " +type);
 		Point p=frame.getLocation();
-		this.setLocation(p.x,p.y);
+		//this.setLocation(p);
+		this.setLocation(p.x+frame.getSize().height/2,p.y+10);
 		setModal(true); 
 		java.awt.Container cont=getContentPane();
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -150,15 +152,6 @@ public class InsertWindow extends JDialog{
 		pack();
 		setVisible(true);
 	}
-	
-	
-	/*public Term createTerm(OntModel model,String def1,String def2,String law){
-		return new Term(model,def1,def2,law);
-	}
-	
-	public Organization createOrganization(OntModel model,String def1,String law){
-		return new Organization(model,def1,law);
-	}*/
 	
 	private String getProvisionType(OntClass ont){
 		String provisionType=ont.toString();
