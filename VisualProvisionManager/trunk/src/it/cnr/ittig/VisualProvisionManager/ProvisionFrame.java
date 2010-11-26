@@ -2,6 +2,7 @@ package it.cnr.ittig.VisualProvisionManager;
 
 import javax.swing.JFrame;
 import com.hp.hpl.jena.rdf.model.*;
+
 import it.cnr.ittig.ProvisionModel.OntUtils;
 import it.cnr.ittig.ProvisionModel.ProvisionModelFactory;
 import it.cnr.ittig.VisualProvisionManager.Provision.Provision;
@@ -122,14 +123,20 @@ public class ProvisionFrame extends JFrame{
 	
 	//CARICA IL MODELLO CONTENUTO NEL PROVISIONMODEL
 	private void loadModel(){
-		model=provisionModelFactory.getProvisionModel();
+		InputStream in = FileManager.get().open("C:/ProvisionModel.rdf"); 
+		if (in == null) {
+		    	throw new IllegalArgumentException("File non trovato");		                                 
+		}
+		model=ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, null);
+		model.read(in,"RDF/XML-ABBREV");
+		//model=provisionModelFactory.getProvisionModel(); //MEGLIO DI NO, ALMENO E' PIU' GENERALE
 		modelOutput=ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM,null);//CREO IL MODELLO DI OUTPUT
-		modelOutput.addSubModel(model);//AGGIUNGO AL MODELLO DI OUTPUT LE DEFINIZIONI DEL MODELLO BASE
+		//modelOutput.addSubModel(model);//AGGIUNGO AL MODELLO DI OUTPUT LE DEFINIZIONI DEL MODELLO BASE
+		modelOutput=model; //CON QUELLO SOPRA DA ALCUNI PROBLEMI
 		//model.addLoadedImport("C:/ProvisionModel.rdf");
 		/*OntDocumentManager manager=new OntDocumentManager();
 		manager.loadImport(modelOutput,"C:/ProvisionModel.rdf")*/;
 		/*InputStream in = FileManager.get().open("C:/ProvisionModel.rdf"); //VECCHIA VERSIONE SBAGLIATA
-		in = FileManager.get().open("C:/ProvisionModel.rdf");
 		modelOutput.read(in,"RDF/XML-ABBREV");*/
 		ExtendedIterator r=modelOutput.listSubModels();
 		if(!r.hasNext())System.out.println("No import");//STAMPO SE L'IMPORT è ANDATO A BUON FINE
@@ -533,7 +540,7 @@ public class ProvisionFrame extends JFrame{
 		provisionTree.addTreeSelectionListener(new SelectionListener(frame));
 		provisionTree.addTreeWillExpandListener(new TreeExpandListener());
 		//provisionTree.addMouseListener(new TreeMouseListener(frame));
-		JSplitPane split=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel,panel1);
+		JSplitPane split=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panel1,panel);
 		Dimension frameSize=frame.getSize();
 		int location=frame.getLocation().x+(int)frameSize.getWidth()/2;
 		split.setDividerLocation(location);
@@ -590,8 +597,7 @@ public class ProvisionFrame extends JFrame{
 	
 	 //	CREA UNA NUOVA DISPOSIZIONE ASSOCIANDOGLI UN NOME UNIVOCO
 	//ONT TIPO (CLASSE) DI DISPOSIZIONE, PROPERTIES NOME DEGLI ARGOMENTI, PARAM VALORI ARGOMENTI (TESTO COMPRESO)
-	public Provision createProvision(OntClass ont, String []properties,String []param){
-		//PENSACI 
+	public Provision createProvision(OntClass ont, String []properties,String []param){ 
 		Provision prov=new Provision(ont);
 		prov.setID(createID(prov.getType())); //CREO IL NOME DELLA DISPOSIZIONE INTERROGANDO IL TIPO DELLA DISPOSIZIONE
 		for(int i=0;i<=param.length-2;i++){//LENGTH-2 PERCHE' UNO E' IL TESTO CHE LO AGGIUNGO A PARTE, E 1 PERCHE' GLI ELEMENTI SONO LENGTH-1
@@ -599,12 +605,6 @@ public class ProvisionFrame extends JFrame{
 		}
 		prov.setText(param[param.length-1]);//IMPOSTO IL TESTO DELLA DISPOSIZIONE
 		addProvision(prov);
-		//subPanel.add(tree);
-		Individual ind;
-		ind=modelOutput.createIndividual("http://provisions.org/model/1.0#"+prov.getID(),prov.getOntClass());//CREO UN'ISTANZA NEL MODELLO DI OUTPUT
-		System.out.println("Nome    "+ind.getLocalName());
-		System.out.println(ind.getURI()+"   "+ind.getClass());
-		//SOPRA SOSTITUISCI LA STRING HTTP..... COL METODO GETNS()
 		writeOnScreen();
 		//AGGIUNGO LA DISPOSIZIONE ALL'ALBERO (per ora come elemento figlio di un figlio della radice)
 		DefaultMutableTreeNode node=new DefaultMutableTreeNode(prov.getID());
@@ -614,7 +614,7 @@ public class ProvisionFrame extends JFrame{
 		Enumeration<DefaultMutableTreeNode> e=rootNode.children();
 		while(e.hasMoreElements()){
 			father=(DefaultMutableTreeNode)e.nextElement();
-			String typeOfProvision=(String)father.toString();//getUserObject();
+			String typeOfProvision=(String)father.toString();
 			if(typeOfProvision.equals(prov.getType())){//HO TROVATO IL NODO PADRE, INSERISCO LA DISPOSIZIONE COME FIGLIO
 				//SE IL NODO PADRE HA COME FIGLIO IL NODO ETICHETTATO COME BLANK, ALLORA LO ELIMINO
 				if(father.getChildCount()==1&father.getChildAt(0).toString().equals("Blank")){
@@ -624,6 +624,12 @@ public class ProvisionFrame extends JFrame{
 				//((DefaultTreeModel)provisionTree.getModel()).reload();
 			}		
 		}
+		//CREO L'INDIVIDUO NEL FILE RDF
+		Individual ind;
+		ind=modelOutput.createIndividual("http://provisions.org/model/1.0#"+prov.getID(),prov.getOntClass());//CREO UN'ISTANZA NEL MODELLO DI OUTPUT
+		System.out.println("Nome    "+ind.getLocalName());
+		System.out.println(ind.getURI()+"   "+ind.getClass());
+		//SOPRA SOSTITUISCI LA STRING HTTP..... COL METODO GETNS()
 		//AGGIUNGO AL NODO CREATO I NODI RELATIVI AGLI ARGOMENTI
 		java.util.Enumeration<String> keys=prov.getKeys();
 		String name,value;
@@ -632,28 +638,30 @@ public class ProvisionFrame extends JFrame{
 			value=prov.getArgumentValue(name);
 			node.add(new DefaultMutableTreeNode(name+": "+value));
 			//AGGIUNGO LA PROPRIETA' AL FILE RDF
-			//ind.addLiteral(modelOutput.getProperty(name),"http://provisions.org/model/1.0"+value);
-			Literal literal=modelOutput.createTypedLiteral(value);
-			//ind.setPropertyValue(modelOutput.getProperty(name),literal);
-			ind.addProperty(modelOutput.getProperty("http://provisions.org/model/1.0"+name),literal);
+			Literal literal=modelOutput.createTypedLiteral("http://provisions.org/model/1.0#"+value);
+			Resource res=modelOutput.createResource("http://provisions.org/model/1.0#"+value);
+			System.out.println("La proprietà esiste??????"+ind.hasProperty(model.getProperty("http://provisions.org/model/1.0"+name)));
+			System.out.println("Inserire la proprietà "+modelOutput.getProperty(name)+" perchè" +ind.hasProperty(modelOutput.getProperty(name)));
+			ind.setPropertyValue(modelOutput.getProperty("http://provisions.org/model/1.0#"+name),res);
+		//ind.addLiteral(modelOutput.getProperty(name),"http://provisions.org/model/1.0"+value);//"http://provisions.org/model/1.0"+value);//ERRORE BADURIEXCEPTION
+			System.out.println("fsdjkfsdj"+modelOutput.getProperty("http://provisions.org/model/1.0sbuibbo"));
+			//ind.addProperty(modelOutput.getProperty("http://provisions.org/model/1.0"+name),literal);//FUNZIONA (O QUASI)
+			System.out.println("La proprietà risulta"+ind.getPropertyValue(model.getProperty("http://provisions.org/model/1.0"+name)));
 			StmtIterator prop=ind.listProperties();
 			while(prop.hasNext()){
 				System.out.println("Proprietà"+prop.next().toString());
-				System.out.println("Letterale "+modelOutput.createTypedLiteral(value));
+				//System.out.println("Letterale "+modelOutput.createTypedLiteral(value));
 				//ind.setPropertyValue((OntProperty)prop.next(),literal);
 				
 			}
 			writeOnScreen();
 		}
 		//AGGIUNGO A PARTE IL TESTO DELLA DISPOSIZIONE
-	//	String content=new String("Testo: "+prov.getText());
-		//DefaultMutableTreeNode argument=new DefaultMutableTreeNode(content);
 		DefaultMutableTreeNode argument=new DefaultMutableTreeNode("Testo: "+prov.getText());
 		node.add(argument);
 		//AGGIORNO IL DISEGNO DELL'ALBERO
 		//((DefaultTreeModel)provisionTree.getModel()).reload();
 		reloadTreeAfter();
-		//subPanel.repaint();
 		return prov;
 	}
 	
@@ -767,26 +775,30 @@ public class ProvisionFrame extends JFrame{
 		//SE ELENCO TUTTI GLI INDIVIDUI DEL MODELLO NON FA, PERCHE' LA LORO CLASSE E NELL'ALTRO MODELLO
 		Individual indRemoved=null;
 		//TODO TOGLI LA STRING HTTP....SOTTO E METTI L'NS
-		indRemoved=modelOutput.getIndividual("http://provisions.org/model/1.0#"+temp.getID());
+	/*	indRemoved=modelOutput.getIndividual("http://provisions.org/model/1.0#"+temp.getID());
 		if(!(indRemoved==null)){
 			indRemoved.remove();
 			writeOnScreen();
-		}
-		//VERSIONE NON FUNZIONANTE
-	/*	ExtendedIterator <Individual> iterIndividual=modelOutput.listIndividuals();
+		}*/
+		//VERSIONE  FUNZIONANTE SE INDIVIDUI E DEFINIZIONE DELLE CLASSI SONO NELLO STESSO MODELLO
+		ExtendedIterator <Individual> iterIndividual=modelOutput.listIndividuals();
+		if(!iterIndividual.hasNext()){System.out.println("Vuoto");}
 		while(iterIndividual.hasNext()){
 			indRemoved=(Individual)iterIndividual.next();
-			System.out.println(indRemoved.getLocalName());
-			if(indRemoved.getLocalName()==temp.getID()){
-				  for(ExtendedIterator si = modelOutput.listAllOntProperties(); si.hasNext(); ){
-					   Statement stmt = (Statement)si.next();
-					   modelOutput.remove(stmt);
-					  }
+			if(indRemoved.getLocalName().equals(temp.getID())){//rimuovo eventuali statement che riguardano l'elemento
+				  indRemoved.remove();  
+				/*for(ExtendedIterator si = modelOutput.listAllOntProperties(); si.hasNext(); ){
+					   //Statement stmt = (Statement)si.next();
+					   //System.out.println("Adesso rimuovo"+stmt.toString());
+					   //modelOutput.remove(stmt);
+					  }*/
 			}
-		}*/
+			//modelOutput.removeAll(indRemoved,null,null);// rimuovo anche l'elemento
+		}
+		writeOnScreen();
 	}
 	
-	private Provision searchProvision(String ID){
+	public Provision searchProvision(String ID){
 		Provision temp;
 		if(provisions.isEmpty()){
 			return null;
@@ -808,28 +820,55 @@ public class ProvisionFrame extends JFrame{
 		if(prov==null){//NON DOVREBBE ESSER MAI VERO, SIGNIFICA CHE LA DISPOSIZIONE NON ESISTE
 			return;
 		}
+		//System.out.println("Abbiamo la bellezza di "+propertyName.length+" argomenti");
 		for(int i=0;i<=propertyName.length-2;i++){//LENGTH-2 PERCHE' UNO E' IL TESTO CHE LO AGGIUNGO A PARTE, E 1 PERCHE' GLI ELEMENTI SONO LENGTH-1
 			prov.modifyArguments(propertyName[i], propertyValue[i]);
 		}
 		prov.setText(propertyValue[propertyValue.length-1]);
 		System.out.println(prov.toString());//CONTROLLO VISIVO CHE TUTTO è OK
 		//reloadTreeAfterModification(node);
-		int properties=node.getChildCount();
+		//int properties=node.getChildCount();
+		int properties=prov.numberOfArguments()+1;
 		node.removeAllChildren();
 		DefaultMutableTreeNode child;
 		String content=null;
-		for(int i=0;i<properties;i++){
-			content=propertyName[i]+": "+propertyValue[i];
+		for(int i=1;i<=properties;i++){
+			System.out.println("Ciclo numero"+i);
+			content=propertyName[i-1]+": "+propertyValue[i-1];
 			child=new DefaultMutableTreeNode(content);
 			node.add(child);
 		}
 		reloadTreeAfter();
 		//MODIFICO NEL FILE RDF
-		Individual indRemoved=null;
+		Individual ind=null;
 		//TODO TOGLI LA STRING HTTP....SOTTO E METTI L'NS
-		indRemoved=modelOutput.getIndividual("http://provisions.org/model/1.0#"+prov.getID());
-		if(!(indRemoved==null)){
+		ind=modelOutput.getIndividual("http://provisions.org/model/1.0#"+prov.getID());
+		ind.remove();
+		ind=modelOutput.createIndividual("http://provisions.org/model/1.0#"+prov.getID(),prov.getOntClass());
+		if(!(ind==null)){
 			//TODO modifica o cancellazione e nuovo inserimento
+			java.util.Enumeration<String> keys=prov.getKeys();
+			String name,value;
+			while(keys.hasMoreElements()){	
+				name=keys.nextElement();
+				value=prov.getArgumentValue(name);
+				node.add(new DefaultMutableTreeNode(name+": "+value));
+				//AGGIUNGO LA PROPRIETA' AL FILE RDF
+				Literal literal=modelOutput.createTypedLiteral("http://provisions.org/model/1.0#"+value);
+				Resource res=modelOutput.createResource("http://provisions.org/model/1.0#"+value);
+				System.out.println("La proprietà esiste??????"+ind.hasProperty(model.getProperty("http://provisions.org/model/1.0"+name)));
+				System.out.println("Inserire la proprietà "+modelOutput.getProperty(name)+" perchè" +ind.hasProperty(modelOutput.getProperty(name)));
+				ind.setPropertyValue(modelOutput.getProperty("http://provisions.org/model/1.0#"+name),res);
+				System.out.println("La proprietà risulta"+ind.getPropertyValue(model.getProperty("http://provisions.org/model/1.0"+name)));
+				StmtIterator prop=ind.listProperties();
+				while(prop.hasNext()){
+					System.out.println("Proprietà"+prop.next().toString());
+					//System.out.println("Letterale "+modelOutput.createTypedLiteral(value));
+					//ind.setPropertyValue((OntProperty)prop.next(),literal);
+					
+				}
+				writeOnScreen();
+			}	
 		}
 		
 	}

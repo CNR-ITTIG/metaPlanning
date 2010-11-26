@@ -37,11 +37,15 @@ public class TreeWindow extends JDialog{
 		setModal(true);
 		setLocation(MouseInfo.getPointerInfo().getLocation().x,+MouseInfo.getPointerInfo().getLocation().y);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-		int properties=node.getChildCount();//VI E' GIA' ANCHE IL CAMPO DEL TESTO
+		System.out.println(node.toString());
+		Provision temp=frame.searchProvision(node.toString());
+		int properties=temp.numberOfArguments()+1;//AGGIUNGO 1 CAUSA IL CAMPO TESTO
+		//int properties=node.getChildCount();//VI E' GIA' ANCHE IL CAMPO DEL TESTO
 		panel.setLayout(new GridLayout((properties)*2,1)); //IMPOSTO LE DIMENSIONI DEL PANNELLO INSERIMENTO ARGOMENTI. PER OGNI ARGOMENTO UNA LABEL E UN JTextField
 		down.setLayout(new GridLayout(2,1));
 		labels=new JLabel[properties];
 		fields=new JTextField[properties-1];
+		System.out.println("Avremo quindi "+(properties-1));
 		for(int i=0;i<=properties-1;i++){
 			labels[i]=new JLabel(argumentsName(node.getChildAt(i).toString()));			
 			if(i<properties-1){
@@ -83,9 +87,10 @@ public class TreeWindow extends JDialog{
 				if (cond&e.getSource()==button) //SE HO CORRETTAMENTE INSERITO GLI ARGOMENTI E PREMO OK
 				{
 					
-					System.out.println("Modificare");
+					System.out.println("Modificare i"+num);
 					String []arguments=new String[num+1]; //PASSO I VALORI DEGLI ARGOMENTI IN QUESTO ARRAY
 					for(int i=1;i<=num;i++){
+						System.out.println(fields[i-1].getText());
 						arguments[i-1]=fields[i-1].getText();
 					}
 					arguments[arguments.length-1]=area.getText();//AGGIUNGO IL VALORE DEL TESTO DELLA DISPOSIZIONE ALL'ARRAY

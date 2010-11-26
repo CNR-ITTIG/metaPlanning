@@ -30,7 +30,9 @@ public class Provision {
 	public void setID(String name){
 		ID=name;
 	}
-	
+	 public int numberOfArguments(){
+		 return arguments.size();
+	 }
 	
 	public String getID(){
 		return ID;
@@ -81,6 +83,7 @@ public class Provision {
 	}
 	
 	public void modifyArguments(String name, String value){
+		arguments.remove(name);
 		arguments.put(name, value);
 	}
 	
