@@ -644,7 +644,6 @@ public class ProvisionFrame extends JFrame{
 			System.out.println("Inserire la proprietà "+modelOutput.getProperty(name)+" perchè" +ind.hasProperty(modelOutput.getProperty(name)));
 			ind.setPropertyValue(modelOutput.getProperty("http://provisions.org/model/1.0#"+name),res);
 		//ind.addLiteral(modelOutput.getProperty(name),"http://provisions.org/model/1.0"+value);//"http://provisions.org/model/1.0"+value);//ERRORE BADURIEXCEPTION
-			System.out.println("fsdjkfsdj"+modelOutput.getProperty("http://provisions.org/model/1.0sbuibbo"));
 			//ind.addProperty(modelOutput.getProperty("http://provisions.org/model/1.0"+name),literal);//FUNZIONA (O QUASI)
 			System.out.println("La proprietà risulta"+ind.getPropertyValue(model.getProperty("http://provisions.org/model/1.0"+name)));
 			StmtIterator prop=ind.listProperties();
