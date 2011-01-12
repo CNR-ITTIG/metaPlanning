@@ -36,6 +36,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -45,6 +46,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
@@ -451,8 +453,9 @@ public class ProvisionFrame extends JFrame{
 		
 		ActionListener findListener=new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				frame.listProvision();
-				JOptionPane.showMessageDialog(frame,"TODO", "TODO", JOptionPane.WARNING_MESSAGE);
+				//frame.listProvision();
+				new searchWindow(model,frame);
+				//JOptionPane.showMessageDialog(frame,"TODO", "TODO", JOptionPane.WARNING_MESSAGE);
 			}
 		};
 		itemCerca.addActionListener(findListener);
@@ -644,6 +647,7 @@ public class ProvisionFrame extends JFrame{
 			System.out.println("Inserire la proprietà "+modelOutput.getProperty(name)+" perchè" +ind.hasProperty(modelOutput.getProperty(name)));
 			ind.setPropertyValue(modelOutput.getProperty("http://provisions.org/model/1.0#"+name),res);
 		//ind.addLiteral(modelOutput.getProperty(name),"http://provisions.org/model/1.0"+value);//"http://provisions.org/model/1.0"+value);//ERRORE BADURIEXCEPTION
+			System.out.println("fsdjkfsdj"+modelOutput.getProperty("http://provisions.org/model/1.0sbuibbo"));
 			//ind.addProperty(modelOutput.getProperty("http://provisions.org/model/1.0"+name),literal);//FUNZIONA (O QUASI)
 			System.out.println("La proprietà risulta"+ind.getPropertyValue(model.getProperty("http://provisions.org/model/1.0"+name)));
 			StmtIterator prop=ind.listProperties();
@@ -666,7 +670,6 @@ public class ProvisionFrame extends JFrame{
 	
 	public void reloadTree(){//AGGIORNA L'ALBERO DELL'APPLICAZIONE
 		int[] expandedRow=new int[ radice.getChildCount()];
-		System.out.println("Nodi	"+radice.getChildCount());
 		for(int i=0;i<radice.getChildCount();i++){
 			if(!provisionTree.isCollapsed(i)){//1 LA RIGA è ESPANSA
 				System.out.println("Riga"+i);
@@ -797,6 +800,7 @@ public class ProvisionFrame extends JFrame{
 		writeOnScreen();
 	}
 	
+	//CERCA UNA DISPOSIZIONE SULLA BASE DEL SUO ID
 	public Provision searchProvision(String ID){
 		Provision temp;
 		if(provisions.isEmpty()){
@@ -807,6 +811,38 @@ public class ProvisionFrame extends JFrame{
 			temp=provisions.elementAt(i);
 			if(temp.getID().equals(ID)){
 				return temp;
+			}
+		}
+		return null;
+	}
+	
+	//CERCA UNA DISPOSIZIONE SULLA BASE DEL TIPO E DEI VALORI DEGLI ARGOMENTI
+	public Provision searchProvision(String type,JLabel [] labels,JTextField []fields){
+		System.out.println("Cerco una "+type);
+		Provision temp;
+		boolean find=false;
+		if(provisions.size()==0){
+			return null;
+		}
+		for(int i=0;i<provisions.size();i++){
+			//find=true;
+			temp=provisions.elementAt(i);
+			System.out.println(temp.getType());
+			if(temp.getType().equals(type)){
+				//int j=0;
+				//while()
+				for(int j=0;j<labels.length;j++){
+					System.out.println("CERCO "+labels[j].getText()+" con valore "+fields[j].getText());
+					if(temp.getArgumentValue(labels[j].getText()).equals(fields[j].getText())){//&&find){//FIND SERVE PER METTERE IN AND  I VARI TEST
+						find=true;//L'ARGOMENTO HA IL VALORE RICERCATO
+					}else{
+						find=false;//L'ARGOMENTO NON HA IL VALORE RICERCATO
+						break;// PASSO ALL'ELEMENTO SUCCESSIVO
+					}
+				}	
+				if(find==true){
+					return temp;
+				}
 			}
 		}
 		return null;
