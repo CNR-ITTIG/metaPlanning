@@ -83,8 +83,18 @@ public class Provision {
 	}
 	
 	public void modifyArguments(String name, String value){
-		arguments.remove(name);
+
 		arguments.put(name, value);
+	}
+	public void modify(String[] names, String []values){
+		arguments=new Hashtable<String, String>();
+		for(int i=0;i<names.length;i++){
+			arguments.put(names[i], values[i]);
+		}
+	}
+	
+	public void printArguments(){
+		arguments.toString();
 	}
 	
 	//RITORNA IL TESTO DELLA DISPOSIZIONE
@@ -106,6 +116,6 @@ public class Provision {
 		return provisionType;
 	}
 	public String toString(){
-		return arguments.toString()+text;
+		return arguments.toString();
 	}
 }

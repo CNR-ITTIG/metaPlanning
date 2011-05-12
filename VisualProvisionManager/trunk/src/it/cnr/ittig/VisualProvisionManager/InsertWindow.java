@@ -5,16 +5,13 @@ import it.cnr.ittig.VisualProvisionManager.Provision.Provision;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.util.Iterator;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -38,18 +35,18 @@ public class InsertWindow extends JDialog{
 	JLabel [] labels; //ELENCA TUTTE LE LABEL ASSOCIATE AGLI ARGOMENTI DELLA DISPOSIZIONE
 	JTextField [] fields; //ELENCA TUTTI CAMPI DI TESTO ASSOCIATI AGLI ARGOMENTI DELLA DISPOSIZIONE
 	JLabel empty=new JLabel("");// 4 label vuote per allineare in modo corretto gli elementi della finestra
-	JScrollPane scroller1; 
+	JScrollPane scroller1;
+	private int maxArguments=8; //INDICA IL MASSIMO NUMERO DI ARGOMENTI CHE UNA DISPOSIZIONE PUO' AVERE(TESTO COMPRESO) (AUTOMATIZZA?)
 	
 	public InsertWindow(final ProvisionFrame frame,final OntModel model,final OntClass ont){//FRAME E ONTMODEL DEFINITO FINAL PER POTER FUNZIONARE COL LISTENER INTERNO
 		type=getProvisionType(ont);//RICAVO IL TIPO DI DISPOSIZIONE ED IMPOSTO IL TITOLO DELLA FINESTRA
-		if(type.equals("RuleOnRule")){//UTILE PER STAMPARE MESSAGGIO INFORMATIVO SE SI VUOL CREARE UNA RULEONRULE
+		if(type.equals("RuleOnRule")||type.endsWith("Amendment")){//UTILE PER STAMPARE MESSAGGIO INFORMATIVO SE SI VUOL CREARE UNA RULEONRULE
 			JOptionPane.showMessageDialog(frame,"Non Implementato","Non Implementato",JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
 		setTitle("Inserimento nuovo " +type);
 		Point p=frame.getLocation();
-		//this.setLocation(p);
-		this.setLocation(p.x+frame.getSize().height/2,p.y+10);
+		this.setLocation(p.x,p.y);
 		setModal(true); 
 		java.awt.Container cont=getContentPane();
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -62,19 +59,19 @@ public class InsertWindow extends JDialog{
 		final JButton button=new JButton("OK");
 		final JButton button1=new JButton("Cancella");
 		int numOfProperties=0;
-		final String[] properties=new String[5]; //RIGUARDA LA GRANDEZZA DELL'ARRAY
+		final String[] properties=new String[maxArguments]; //RIGUARDA LA GRANDEZZA DELL'ARRAY
 		
 	//	OntModel modelSearch=frame.getModelReasoner();
 		//RECUPERO LE PROPRIETA' SPECIFICHE DELLA CLASSE
 		OntClass ont1=model.getOntClass(ont.toString());// CLASSE DELLA DISPOSIZIONE CHE VOGLIO INSERIRE
-		ExtendedIterator iter=ont1.listDeclaredProperties(); // SAREBBE PIU' EFFICIENTE, MA DEVO TROVARE UN REASONER COL QUALE FUNZIONA
+		ExtendedIterator <OntProperty> iter=ont1.listDeclaredProperties(); // SAREBBE PIU' EFFICIENTE, MA DEVO TROVARE UN REASONER COL QUALE FUNZIONA
 		while(iter.hasNext()){								//PROPRIETA' CONDIVISE NON SONO RITORNATE CORRETTAMENTE
 			properties[numOfProperties]=getPropertyName(iter.next().toString());
 			numOfProperties++;
 		}
 		
 		//RECUPERO LE PROPRIETA' CONDIVISE APPARTENENTI ALLA CLASSE
-		ExtendedIterator <UnionClass> iterUnion=model.listUnionClasses();
+		/*ExtendedIterator <UnionClass> iterUnion=model.listUnionClasses();
 		while(iterUnion.hasNext()){
 			UnionClass ont2=(UnionClass)iterUnion.next(); //CLASSE UNIONE 
 			if(ont2.hasOperand(ont1)){
@@ -82,20 +79,8 @@ public class InsertWindow extends JDialog{
 				properties[numOfProperties]=getPropertyName(iter.next().toString());
 				numOfProperties++;
 			}
-		}
-		
-		
-		//VERSIONE ALTERNATIVA, PROBLEMA CHE L'ORDINE IN CUI SONO PRESENTATI GLI ARGOMENTI NON SEMBRA OTTIMO 
-		/*ExtendedIterator iter2=model.listOntProperties();//INTERROGO IL MODELLO ELENCANDO TUTTE LE PROPRIETA' PRESENTI
-		OntProperty prop=null;
-		while(iter2.hasNext()){
-			prop=(OntProperty)iter2.next();
-			//System.out.println("Dominio di "+ ont.toString()+" è "+prop.getDomain());
-			if(prop.hasDomain(ont)){//SE LA PROPRIETA' APPARTIENE ALLA DISPOSIZIONE LA AGGIUNGO
-				properties[numOfProperties]=getPropertyName(prop.toString());
-				numOfProperties++;
-			}
 		}*/
+		
 		panel.setLayout(new GridLayout(numOfProperties*2,1)); //IMPOSTO LE DIMENSIONI DEL PANNELLO INSERIMENTO ARGOMENTI. PER OGNI ARGOMENTO UNA LABEL E UN JTextField
 		down.setLayout(new GridLayout(2,1));
 		labels=new JLabel[numOfProperties]; //CREO LE LABEL E I JTextField PER OGNI ARGOMENTO E LE AGGIUNGO AL PANEL
@@ -130,8 +115,12 @@ public class InsertWindow extends JDialog{
 					for(int i=1;i<=num;i++){
 						arguments[i-1]=fields[i-1].getText();
 					}
+					String []properties1=new String[num];
+					for(int i=1;i<=num;i++){
+						properties1[i-1]=properties[i-1];
+					}
 					arguments[arguments.length-1]=area.getText();//AGGIUNGO IL VALORE DEL TESTO DELLA DISPOSIZIONE ALL'ARRAY
-					Provision prov=frame.createProvision(ont,properties,arguments);
+					frame.createProvision(ont,properties,arguments);
 				}
 				dispose();
 			}
@@ -152,6 +141,7 @@ public class InsertWindow extends JDialog{
 		pack();
 		setVisible(true);
 	}
+
 	
 	private String getProvisionType(OntClass ont){
 		String provisionType=ont.toString();

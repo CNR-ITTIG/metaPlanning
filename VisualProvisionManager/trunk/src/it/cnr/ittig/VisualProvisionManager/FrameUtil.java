@@ -3,8 +3,10 @@ package it.cnr.ittig.VisualProvisionManager;
 import it.cnr.ittig.VisualProvisionManager.applicationFrame.RDFFileFilter;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Hashtable;
 
 import javax.swing.Action;
@@ -18,23 +20,22 @@ public class FrameUtil {
 	public static void saveFile(JFrame frame, OntModel model, boolean modified, String savedPath)
 	{
 		File selectedFile;
-		FileWriter writer=null;
+		FileOutputStream stream=null;
 		if(savedPath!=null){
 			selectedFile=new File(savedPath);
 			try{
-				 writer=new FileWriter(selectedFile);
+				stream=new FileOutputStream(selectedFile);
 			}
 			catch (Exception ex){
 				JOptionPane.showMessageDialog(frame,"Errore nel salvataggio del file", "Errore", JOptionPane.ERROR_MESSAGE);
 			}
-			if(writer != null){
-				model.write(writer);
+			if(stream != null){
+				model.write(stream);
 				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
-				System.out.println(savedPath);
 				try{
-					writer.close();
+					stream.close();
 				}catch(IOException ex){
-					System.out.println("Errore nel chiusura del writer");
+					System.out.println("Errore nel chiusura dello stream");
 					ex.printStackTrace();
 				}
 			}
@@ -55,7 +56,7 @@ public class FrameUtil {
 
 		int status=chooser1.showSaveDialog(frame);
 		if (status == JFileChooser.APPROVE_OPTION) {
-			 selectedFile = chooser1.getSelectedFile();
+			selectedFile = chooser1.getSelectedFile();
 			String path=selectedFile.getPath();
 			//SE IL FILE HA ESTENSIONE RDF, LA TRASFORMO IN rdf
 			if(path.endsWith(".RDF"))
@@ -72,23 +73,25 @@ public class FrameUtil {
 				selectedFile=new File(path);
 				//System.out.print("path not ends with rdf");
 			}
-			FileWriter writer=null;
+			//FileWriter writer=null;
+			OutputStream stream=null;
 			try{
-				 writer=new FileWriter(selectedFile);
+				// writer=new FileWriter(selectedFile);
+				 stream=new FileOutputStream(selectedFile);
 			}
 			catch (Exception ex){
 				JOptionPane.showMessageDialog(frame,"Errore nel salvataggio del file", "Errore", JOptionPane.ERROR_MESSAGE);
 			}
-			if(writer != null){
+			if(stream != null){
 				// model= ModelFactory.createDefaultModel();
-				model.write(writer);
+				model.write(stream);
 				modified=false; //indico che il lavoro non ha subito modifiche dall'ultimo salvataggio
 				//AGGIORNO IL SAVED PATH 
 				savedPath=path;
 				try{
-					writer.close();
+					stream.close();
 				}catch(IOException ex){
-					System.out.println("Errore nel chiusura del writer");
+					System.out.println("Errore nel chiusura dello stream");
 					ex.printStackTrace();
 				}
 			}
@@ -125,4 +128,17 @@ public class FrameUtil {
 		return commands.get(key);
 		}
 
+
+	public static String clearNS(String arg){// ELIMINA LA PARTE RELATIVA AL NAMESPACE, UTILE PER NOME ARGOMENTI O VALORE
+		char charAt;
+		String value=arg;
+		for(int i=0;i<=arg.length()-1;i++){
+			charAt=arg.charAt(i);
+			if(charAt=='#'){
+				value=arg.substring(i+1,arg.length());
+				break;
+			}
+		}
+		return value;
+	}
 }
